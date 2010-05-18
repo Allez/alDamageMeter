@@ -1,0 +1,7 @@
+## Interface: 30300
+## Author: Allez
+## Title: alDamageMeter
+## Notes: Damage meter
+
+embeds.xml
+alDamageMeter.lua
