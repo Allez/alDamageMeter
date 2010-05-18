@@ -324,10 +324,10 @@ local OnEvent = function(self, event, ...)
 		end
 	elseif event == "ADDON_LOADED" then
 		local name = ...
-		if name == "qDamage" then
+		if name == "alDamageMeter" then
 			self:UnregisterEvent("ADDON_LOADED")
-			MainFrame = CreateFrame("ScrollFrame", "qDamageScrollFrame", UIParent, "UIPanelScrollFrameTemplate")
-			DisplayFrame = CreateFrame("Frame", "qDamageDisplayFrame", UIParent)
+			MainFrame = CreateFrame("ScrollFrame", "alDamageScrollFrame", UIParent, "UIPanelScrollFrameTemplate")
+			DisplayFrame = CreateFrame("Frame", "alDamageDisplayFrame", UIParent)
 			MainFrame:SetScrollChild(DisplayFrame)
 			MainFrame:SetPoint(anchor, UIParent, anchor, x, y)
 			DisplayFrame:SetPoint("TOPLEFT", MainFrame, "TOPLEFT", 0, 0)
