@@ -25,6 +25,8 @@ local backdrop = {
 local menuFrame = CreateFrame("Frame", "FightsMenu", UIParent, "UIDropDownMenuTemplate")
 local reportFrame = CreateFrame("Frame", "ReportMenu", UIParent, "UIDropDownMenuTemplate")
 
+local dummy = function() return end
+
 local truncate = function(value)
 	if value >= 1e6 then
 		return string.format('%.2fm', value / 1e6)
@@ -211,7 +213,7 @@ local EndCombat = function()
 	DisplayFrame:SetScript('OnUpdate', nil)
 	combatstarted = false
 	local fname = bossname or mobname
-	if name then
+	if fname then
 		if #fights >= maxfights then
 			tremove(fights, 1)
 		end
@@ -381,6 +383,7 @@ addon:RegisterEvent("UNIT_PET")
 
 SlashCmdList["alDamage"] = function(msg)
 	Add(UnitGUID("player"), 100500)
+	display = current
 	UpdateBars(DisplayFrame)
 end
 SLASH_alDamage1 = "/aldmg"
