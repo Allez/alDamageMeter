@@ -294,8 +294,8 @@ end
 local OnEvent = function(self, event, ...)
 	if event == "COMBAT_LOG_EVENT_UNFILTERED" then
 		local timestamp, eventType, sourceGUID, sourceName, sourceFlags, destGUID, destName, destFlags = select(1, ...)
-		if not bit.band(sourceFlags, filter) or not combatstarted then return end
-		if eventType=="SWING_DAMAGE" or eventType=="RANGE_DAMAGE" or eventType=="SPELL_DAMAGE" or eventType=="SPELL_PERIODIC_DAMAGE" then
+		if not bit.band(sourceFlags, filter) then return end
+		if eventType=="SWING_DAMAGE" or eventType=="RANGE_DAMAGE" or eventType=="SPELL_DAMAGE" or eventType=="SPELL_PERIODIC_DAMAGE" and combatstarted then
 			local ammount = select(eventType=="SWING_DAMAGE" and 9 or 12, ...)
 			if IsFriendlyUnit(sourceGUID) and not IsFriendlyUnit(destGUID) then
 				if ammount and ammount > 0 then
