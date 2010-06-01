@@ -52,16 +52,6 @@ local IsUnitInCombat = function(uGUID)
 	return false
 end
 
-local CreateButton = function(parent, size, color)
-	local button = CreateFrame("Button", nil, parent)
-	button:SetWidth(size)
-	button:SetHeight(size)
-	local texture = button:CreateTexture(nil, "OVERLAY")
-	texture:SetTexture(unpack(color))
-	texture:SetAllPoints(button)
-	return button
-end
-
 local CreateFS = function(frame, fsize, fstyle)
 	local fstring = frame:CreateFontString(nil, 'OVERLAY', 'GameFontHighlight')
 	fstring:SetFont(GameFontHighlight:GetFont(), fsize, fstyle)
@@ -392,9 +382,14 @@ local OnEvent = function(self, event, ...)
 			MainFrame:EnableMouse(true)
 			MainFrame:Show()
 			UIDropDownMenu_Initialize(menuFrame, CreateMenu, "MENU")
-			local menu = CreateButton(MainFrame, 9, {0,0.5,1})
-			menu:SetPoint("BOTTOMRIGHT", MainFrame, "TOPRIGHT", 0, 2)
-			menu:SetScript("OnClick", Menu)
+			local button = CreateFrame("Button", nil, parent)
+			button:SetWidth(9)
+			button:SetHeight(9)
+			local texture = button:CreateTexture(nil, "OVERLAY")
+			texture:SetTexture(0, 0.5, 1)
+			texture:SetAllPoints(button)
+			button:SetPoint("BOTTOMRIGHT", MainFrame, "TOPRIGHT", 0, 2)
+			button:SetScript("OnClick", Menu)
 		end
 	elseif event == "RAID_ROSTER_UPDATE" then
 		UpdateRoster("raid", 40)
