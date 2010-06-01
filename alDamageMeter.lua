@@ -22,8 +22,7 @@ local backdrop = {
 	insets = {top = -1, left = -1, bottom = -1, right = -1},
 }
 
-local menuFrame = CreateFrame("Frame", "FightsMenu", UIParent, "UIDropDownMenuTemplate")
-local reportFrame = CreateFrame("Frame", "ReportMenu", UIParent, "UIDropDownMenuTemplate")
+local menuFrame = CreateFrame("Frame", "alDamageMeterMenu", UIParent, "UIDropDownMenuTemplate")
 
 local dummy = function() return end
 
@@ -121,8 +120,63 @@ local reportList = {
 	},
 }
 
-local Report = function()
-	EasyMenu(reportList, reportFrame, "cursor", 0, 0, "MENU", 2)
+local Clean = function()
+	numfights = 0
+	wipe(current)
+	wipe(fights)
+	ResetDisplay(current)
+end
+
+local CeateMenu = function(self, level)
+	level = level or 1
+	local info = {}
+	if level == 1 then
+		info.isTitle = 1
+		info.text = "Menu"
+		info.notCheckable = 1
+		UIDropDownMenu_AddButton(info, level)
+		wipe(info)
+		info.text = "Report to ..."
+		info.hasArrow = 1
+		info.value = "Report"
+		info.notCheckable = 1
+		UIDropDownMenu_AddButton(info, level)
+		wipe(info)
+		info.text = "Fight"
+		info.hasArrow = 1
+		info.value = "Fight"
+		info.notCheckable = 1
+		UIDropDownMenu_AddButton(info, level)
+		wipe(info)
+		info.text = "Clean"
+		info.func = Clean
+		info.notCheckable = 1
+		UIDropDownMenu_AddButton(info, level)
+	elseif level == 2 then
+		if type(UIDROPDOWNMENU_MENU_VALUE) == "Report" then
+			for i, v in pairs(reportList) do
+				wipe(info)
+				info.text = v.text
+				info.func = v.func
+				info.notCheckable = 1
+				UIDropDownMenu_AddButton(info, level)
+			end
+		end
+		if type(UIDROPDOWNMENU_MENU_VALUE) == "Fight" then
+			wipe(info)
+			info.text = "Current"
+			info.func = function() ResetDisplay(current) end
+			info.notCheckable = 1
+			UIDropDownMenu_AddButton(info, level)
+			for i, v in pairs(fights) do
+				wipe(info)
+				info.text = v.name
+				info.func = function() ResetDisplay(v.data) end
+				info.notCheckable = 1
+				UIDropDownMenu_AddButton(info, level)
+			end
+		end
+	end
 end
 
 local CreateBar = function()
@@ -140,7 +194,7 @@ local CreateBar = function()
 	return newbar
 end
 
-local Add = function(uGUID, damage, heal)
+local Add = function(uGUID, damage, heal, dispel, interrupt)
 	local unit = guids[uGUID]
 	if not unit then return end
 	if not current[uGUID] then
@@ -193,20 +247,8 @@ local ResetDisplay = function(fight)
 	UpdateBars(DisplayFrame)
 end
 
-local Menu = function()
-	local menuList = {}
-	tinsert(menuList, {text = "Current", func = function() ResetDisplay(current) end})
-	for i, v in pairs(fights) do
-		tinsert(menuList, {text = v.name, func = function() ResetDisplay(v.data) end})
-	end
-	EasyMenu(menuList, menuFrame, "cursor", 0, 0, "MENU", 2)
-end
-
-local Clean = function()
-	numfights = 0
-	wipe(current)
-	wipe(fights)
-	ResetDisplay(current)
+local Menu = function(self)
+	ToggleDropDownMenu(1, nil, menuFrame, self, 0, 0)
 end
 
 local EndCombat = function()
@@ -321,6 +363,12 @@ local OnEvent = function(self, event, ...)
 					Add(sourceGUID, nil, ammount - over)
 				end
 			end]]
+		elseif eventType=="SPELL_DISPEL" then
+			sourceGUID = owners[sourceGUID] or sourceGUID
+			Add(sourceGUID, nil, nil, 1)
+		elseif eventType=="SPELL_INTERRUPT" then
+			sourceGUID = owners[sourceGUID] or sourceGUID
+			Add(sourceGUID, nil, nil, nil, 1)
 		else
 			return
 		end
@@ -343,15 +391,10 @@ local OnEvent = function(self, event, ...)
 			MainFrame:SetVerticalScroll(0)
 			MainFrame:EnableMouse(true)
 			MainFrame:Show()
+			UIDropDownMenu_Initialize(menuFrame, CreateMenu, "MENU")
 			local menu = CreateButton(MainFrame, 9, {0,0.5,1})
-			menu:SetPoint("BOTTOMRIGHT",MainFrame,"TOPRIGHT",0,2)
+			menu:SetPoint("BOTTOMRIGHT", MainFrame, "TOPRIGHT", 0, 2)
 			menu:SetScript("OnClick", Menu)
-			local report = CreateButton(MainFrame, 9, {0.5,1,0})
-			report:SetPoint("TOPRIGHT",menu,"TOPLEFT",-2,0)
-			report:SetScript("OnClick", Report)
-			local clean = CreateButton(MainFrame, 9, {0.7,0.7,0.7})
-			clean:SetPoint("TOPRIGHT",report,"TOPLEFT",-2,0)
-			clean:SetScript("OnClick", Clean)
 		end
 	elseif event == "RAID_ROSTER_UPDATE" then
 		UpdateRoster("raid", 40)
