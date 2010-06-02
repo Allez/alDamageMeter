@@ -292,22 +292,19 @@ local UpdatePets = function(unit, pet)
 	end
 end
 
-local UpdateRoster = function(group, count)
-	for id = 1, count do
-		local unit = group .. id
-		if UnitExists(unit) then
-			guid = UnitGUID(unit)
-			if guid == UnitGUID("player") then
-				unit = "player"
-			end
-			units[unit] = guid
-			guids[guid] = unit
-			pet = unit .. "pet"
-			UpdatePets(unit, pet)
-		elseif units[unit] then
-			guids[units[unit]] = nil
-			units[unit] = nil
+local CheckUnit = function(unit)
+	if UnitExists(unit) then
+		guid = UnitGUID(unit)
+		if guid == UnitGUID("player") then
+			unit = "player"
 		end
+		units[unit] = guid
+		guids[guid] = unit
+		pet = unit .. "pet"
+		UpdatePets(unit, pet)
+	elseif units[unit] then
+		guids[units[unit]] = nil
+		units[unit] = nil
 	end
 end
 
@@ -423,10 +420,16 @@ local OnEvent = function(self, event, ...)
 			button:SetPoint("BOTTOMRIGHT", MainFrame, "TOPRIGHT", 0, 2)
 			button:SetScript("OnClick", Menu)
 		end
-	elseif event == "RAID_ROSTER_UPDATE" then
-		UpdateRoster("raid", 40)
-	elseif event == "PARTY_MEMBERS_CHANGED" then
-		UpdateRoster("party", 4)
+	elseif event == "RAID_ROSTER_UPDATE" or event == "PARTY_MEMBERS_CHANGED" then
+		if GetNumRaidMembers() > 0 then
+			for i = 1, 40 do
+				CheckUnit("raid" .. i)
+			end
+		elseif GetNumPartyMembers() > 0 then
+			for i = 1, 4 do
+				CheckUnit("party" .. i)
+			end
+		end
 	elseif event == "PLAYER_ENTERING_WORLD" then
 		units["player"] = UnitGUID("player")
 		guids[UnitGUID("player")] = "player"
