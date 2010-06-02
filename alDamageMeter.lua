@@ -142,14 +142,11 @@ local Add = function(uGUID, ammount, mode)
 			class = select(2, UnitClass(unit)),
 			combatTime = 1,
 		}
-		for _, v in pairs(displayMode) do
-			newdata[v] = 0
-		end
 		current[uGUID] = newdata
 		tinsert(barguids, uGUID)
 	end
 	udata = current[uGUID]
-	udata[mode] = udata[mode] + (ammount or 0)
+	udata[mode] = (udata[mode] or 0) + ammount
 end
 
 local SortMethod = function(a, b)
