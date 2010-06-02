@@ -193,6 +193,11 @@ local Clean = function()
 	ResetDisplay(current)
 end
 
+local SetMode = function(mode)
+	sMode = mode
+	UpdateBars(DisplayFrame)
+end
+
 local CreateMenu = function(self, level)
 	level = level or 1
 	local info = {}
@@ -229,7 +234,7 @@ local CreateMenu = function(self, level)
 			for i, v in pairs(displayMode) do
 				wipe(info)
 				info.text = v
-				info.func = function() sMode = v end
+				info.func = function() SetMode(v) end
 				info.notCheckable = 1
 				UIDropDownMenu_AddButton(info, level)
 			end
