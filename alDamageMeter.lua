@@ -12,15 +12,23 @@ local reportstrings = 10
 local boss = LibStub("LibBossIDs-1.0")
 local bossname, mobname = nil, nil
 local units, guids, bar, barguids, owners, pets = {}, {}, {}, {}, {}, {}
-local current, display, fights = {}, {}, {}
+local current, display, fights, udata = {}, {}, {}
 local timer = 0
 local MainFrame, DisplayFrame
 local combatstarted = false
 local filter = COMBATLOG_OBJECT_AFFILIATION_RAID + COMBATLOG_OBJECT_AFFILIATION_PARTY + COMBATLOG_OBJECT_AFFILIATION_MINE
 local backdrop = {
 	bgFile = [=[Interface\ChatFrame\ChatFrameBackground]=],
+	edgeFile = [=[Interface\ChatFrame\ChatFrameBackground]=], edgeSize = 1,
 	insets = {top = -1, left = -1, bottom = -1, right = -1},
 }
+local displayMode = {
+	'Damage',
+	'Healing',
+	'Dispels',
+	'Interrupts',
+}
+local sMode = 'Damage'
 
 local menuFrame = CreateFrame("Frame", "alDamageMeterMenu", UIParent, "UIDropDownMenuTemplate")
 
@@ -67,7 +75,7 @@ local tcopy = function(src)
 end
 
 local dps = function(cdata)
-	return cdata.damage / cdata.combatTime
+	return cdata[sMode] / cdata.combatTime
 end
 
 local report = function(channel)
@@ -110,65 +118,6 @@ local reportList = {
 	},
 }
 
-local Clean = function()
-	numfights = 0
-	wipe(current)
-	wipe(fights)
-	ResetDisplay(current)
-end
-
-local CeateMenu = function(self, level)
-	level = level or 1
-	local info = {}
-	if level == 1 then
-		info.isTitle = 1
-		info.text = "Menu"
-		info.notCheckable = 1
-		UIDropDownMenu_AddButton(info, level)
-		wipe(info)
-		info.text = "Report to ..."
-		info.hasArrow = 1
-		info.value = "Report"
-		info.notCheckable = 1
-		UIDropDownMenu_AddButton(info, level)
-		wipe(info)
-		info.text = "Fight"
-		info.hasArrow = 1
-		info.value = "Fight"
-		info.notCheckable = 1
-		UIDropDownMenu_AddButton(info, level)
-		wipe(info)
-		info.text = "Clean"
-		info.func = Clean
-		info.notCheckable = 1
-		UIDropDownMenu_AddButton(info, level)
-	elseif level == 2 then
-		if type(UIDROPDOWNMENU_MENU_VALUE) == "Report" then
-			for i, v in pairs(reportList) do
-				wipe(info)
-				info.text = v.text
-				info.func = v.func
-				info.notCheckable = 1
-				UIDropDownMenu_AddButton(info, level)
-			end
-		end
-		if type(UIDROPDOWNMENU_MENU_VALUE) == "Fight" then
-			wipe(info)
-			info.text = "Current"
-			info.func = function() ResetDisplay(current) end
-			info.notCheckable = 1
-			UIDropDownMenu_AddButton(info, level)
-			for i, v in pairs(fights) do
-				wipe(info)
-				info.text = v.name
-				info.func = function() ResetDisplay(v.data) end
-				info.notCheckable = 1
-				UIDropDownMenu_AddButton(info, level)
-			end
-		end
-	end
-end
-
 local CreateBar = function()
 	local newbar = CreateFrame("Statusbar", nil, DisplayFrame)
 	newbar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
@@ -184,41 +133,44 @@ local CreateBar = function()
 	return newbar
 end
 
-local Add = function(uGUID, damage, heal, dispel, interrupt)
+local Add = function(uGUID, ammount, mode)
 	local unit = guids[uGUID]
 	if not unit then return end
 	if not current[uGUID] then
 		local newdata = {
 			name = UnitName(unit),
 			class = select(2, UnitClass(unit)),
-			damage = 0,
-			heal = 0,
 			combatTime = 1,
 		}
+		for _, v in pairs(displayMode) do
+			newdata[v] = 0
+		end
 		current[uGUID] = newdata
 		tinsert(barguids, uGUID)
 	end
-	current[uGUID].heal = current[uGUID].heal + (heal or 0)
-	current[uGUID].damage = current[uGUID].damage + (damage or 0)
+	udata = current[uGUID]
+	udata[mode] = udata[mode] + (ammount or 0)
 end
 
 local SortMethod = function(a, b)
-	return display[b].damage < display[a].damage
+	return display[b][sMode] < display[a][sMode]
 end
 
 local UpdateBars = function(frame)
 	table.sort(barguids, SortMethod)
-	local color
+	local color, cur, max
 	for i, v in pairs(barguids) do
 		if not bar[i] then 
 			bar[i] = CreateBar()
 			bar[i]:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, -(barheight+spacing)*(i-1))
 		end
-		bar[i]:SetValue(100 * display[v].damage / display[barguids[1]].damage)
-		color = RAID_CLASS_COLORS[display[v].class]
+		cur = display[v]
+		max = display[barguids[1]]
+		bar[i]:SetValue(100 * cur[sMode] / max[sMode])
+		color = RAID_CLASS_COLORS[cur.class]
 		bar[i]:SetStatusBarColor(color.r, color.g, color.b)
-		bar[i].right:SetFormattedText("%s (%.0f)", truncate(display[v].damage), dps(display[v]))
-		bar[i].left:SetText(display[v].name)
+		bar[i].right:SetFormattedText("%s (%.0f)", truncate(c[sMode]), dps(c[sMode]))
+		bar[i].left:SetText(cur.name)
 		bar[i]:Show()
 	end
 	DisplayFrame:SetHeight((barheight+spacing)*#barguids)
@@ -235,6 +187,80 @@ local ResetDisplay = function(fight)
 	end
 	MainFrame:SetVerticalScroll(0)
 	UpdateBars(DisplayFrame)
+end
+
+local Clean = function()
+	numfights = 0
+	wipe(current)
+	wipe(fights)
+	ResetDisplay(current)
+end
+
+local CreateMenu = function(self, level)
+	level = level or 1
+	local info = {}
+	if level == 1 then
+		info.isTitle = 1
+		info.text = "Menu"
+		info.notCheckable = 1
+		UIDropDownMenu_AddButton(info, level)
+		wipe(info)
+		info.text = "Mode"
+		info.hasArrow = 1
+		info.value = "Mode"
+		info.notCheckable = 1
+		UIDropDownMenu_AddButton(info, level)
+		wipe(info)
+		info.text = "Report to"
+		info.hasArrow = 1
+		info.value = "Report"
+		info.notCheckable = 1
+		UIDropDownMenu_AddButton(info, level)
+		wipe(info)
+		info.text = "Fight"
+		info.hasArrow = 1
+		info.value = "Fight"
+		info.notCheckable = 1
+		UIDropDownMenu_AddButton(info, level)
+		wipe(info)
+		info.text = "Clean"
+		info.func = Clean
+		info.notCheckable = 1
+		UIDropDownMenu_AddButton(info, level)
+	elseif level == 2 then
+		if UIDROPDOWNMENU_MENU_VALUE == "Mode" then
+			for i, v in pairs(displayMode) do
+				wipe(info)
+				info.text = v
+				info.func = function() sMode = v end
+				info.notCheckable = 1
+				UIDropDownMenu_AddButton(info, level)
+			end
+		end
+		if UIDROPDOWNMENU_MENU_VALUE == "Report" then
+			for i, v in pairs(reportList) do
+				wipe(info)
+				info.text = v.text
+				info.func = v.func
+				info.notCheckable = 1
+				UIDropDownMenu_AddButton(info, level)
+			end
+		end
+		if UIDROPDOWNMENU_MENU_VALUE == "Fight" then
+			wipe(info)
+			info.text = "Current"
+			info.func = function() ResetDisplay(current) end
+			info.notCheckable = 1
+			UIDropDownMenu_AddButton(info, level)
+			for i, v in pairs(fights) do
+				wipe(info)
+				info.text = v.name
+				info.func = function() ResetDisplay(v.data) end
+				info.notCheckable = 1
+				UIDropDownMenu_AddButton(info, level)
+			end
+		end
+	end
 end
 
 local Menu = function(self)
@@ -332,7 +358,7 @@ local OnEvent = function(self, event, ...)
 			if IsFriendlyUnit(sourceGUID) and not IsFriendlyUnit(destGUID) then
 				if ammount and ammount > 0 then
 					sourceGUID = owners[sourceGUID] or sourceGUID
-					Add(sourceGUID, ammount)
+					Add(sourceGUID, ammount, 'Damage')
 					if not bossname and boss.BossIDs[tonumber(destGUID:sub(9, 12), 16)] then
 						bossname = destName
 					elseif not mobname then
@@ -344,21 +370,25 @@ local OnEvent = function(self, event, ...)
 			owners[destGUID] = sourceGUID
 			pets[sourceGUID] = destGUID
 			return
-		elseif eventType=="SPELL_HEAL" or eventType=="SPELL_PERIDOIC_HEAL" then
-			--[[spellId, spellName, spellSchool, ammount, over, school, resist = select(9, ...)
+		elseif eventType=="SPELL_HEAL" or eventType=="SPELL_PERIDOIC_HEAL" and combatstarted then
+			spellId, spellName, spellSchool, ammount, over, school, resist = select(9, ...)
 			if IsFriendlyUnit(sourceGUID) and IsFriendlyUnit(destGUID) then
 				over = over or 0
 				if ammount and ammount > 0 then
 					sourceGUID = owners[sourceGUID] or sourceGUID
-					Add(sourceGUID, nil, ammount - over)
+					Add(sourceGUID, ammount - over, "Healing")
 				end
-			end]]
-		elseif eventType=="SPELL_DISPEL" then
-			sourceGUID = owners[sourceGUID] or sourceGUID
-			Add(sourceGUID, nil, nil, 1)
-		elseif eventType=="SPELL_INTERRUPT" then
-			sourceGUID = owners[sourceGUID] or sourceGUID
-			Add(sourceGUID, nil, nil, nil, 1)
+			end
+		elseif eventType=="SPELL_DISPEL" and combatstarted then
+			if IsFriendlyUnit(sourceGUID) and IsFriendlyUnit(destGUID) then
+				sourceGUID = owners[sourceGUID] or sourceGUID
+				Add(sourceGUID, 1, "Dispels")
+			end
+		elseif eventType=="SPELL_INTERRUPT" and combatstarted then
+			if IsFriendlyUnit(sourceGUID) and not IsFriendlyUnit(destGUID) then
+				sourceGUID = owners[sourceGUID] or sourceGUID
+				Add(sourceGUID, 1, "Interrupts")
+			end
 		else
 			return
 		end
@@ -367,12 +397,12 @@ local OnEvent = function(self, event, ...)
 		if name == "alDamageMeter" then
 			self:UnregisterEvent("ADDON_LOADED")
 			MainFrame = CreateFrame("ScrollFrame", "alDamageScrollFrame", UIParent, "UIPanelScrollFrameTemplate")
-			DisplayFrame = CreateFrame("Frame", "alDamageDisplayFrame", UIParent)
-			MainFrame:SetScrollChild(DisplayFrame)
 			MainFrame:SetPoint(anchor, UIParent, anchor, x, y)
+			DisplayFrame = CreateFrame("Frame", "alDamageDisplayFrame", UIParent)
 			DisplayFrame:SetPoint("TOPLEFT", MainFrame, "TOPLEFT", 0, 0)
 			DisplayFrame:SetWidth(width)
 			DisplayFrame:SetHeight(height)
+			MainFrame:SetScrollChild(DisplayFrame)
 			MainFrame:SetWidth(width)
 			MainFrame:SetHeight(height)
 			MainFrame:SetBackdrop(backdrop)
