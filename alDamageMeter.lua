@@ -169,7 +169,7 @@ local UpdateBars = function(frame)
 		bar[i]:SetValue(100 * cur[sMode] / max[sMode])
 		color = RAID_CLASS_COLORS[cur.class]
 		bar[i]:SetStatusBarColor(color.r, color.g, color.b)
-		bar[i].right:SetFormattedText("%s (%.0f)", truncate(c[sMode]), dps(c[sMode]))
+		bar[i].right:SetFormattedText("%s (%.0f)", truncate(cur[sMode]), dps(cur[sMode]))
 		bar[i].left:SetText(cur.name)
 		bar[i]:Show()
 	end
