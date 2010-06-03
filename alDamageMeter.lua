@@ -20,7 +20,7 @@ local filter = COMBATLOG_OBJECT_AFFILIATION_RAID + COMBATLOG_OBJECT_AFFILIATION_
 local backdrop = {
 	bgFile = [=[Interface\ChatFrame\ChatFrameBackground]=],
 	edgeFile = [=[Interface\ChatFrame\ChatFrameBackground]=], edgeSize = 1,
-	insets = {top = -1, left = -1, bottom = -1, right = -1},
+	insets = {top = 0, left = 0, bottom = 0, right = 0},
 }
 local displayMode = {
 	'Damage',
@@ -82,7 +82,7 @@ local report = function(channel)
 	local message
 	for i, v in pairs(barguids) do
 		if i > reportstrings then return end
-		message = string.format("%2d. %s    %s (%.0f)", i, display[v].name, truncate(display[v].damage), dps(display[v]))
+		message = string.format("%2d. %s    %s (%.0f)", i, display[v].name, truncate(display[v][sMode]), dps(display[v]))
 		if channel == "Chat" then
 			DEFAULT_CHAT_FRAME:AddMessage(message)
 		else
@@ -142,11 +142,14 @@ local Add = function(uGUID, ammount, mode)
 			class = select(2, UnitClass(unit)),
 			combatTime = 1,
 		}
+		for _, v in pairs(displayMode) do
+			newdata[v] = 0
+		end
 		current[uGUID] = newdata
 		tinsert(barguids, uGUID)
 	end
 	udata = current[uGUID]
-	udata[mode] = (udata[mode] or 0) + ammount
+	udata[mode] = udata[mode] + ammount
 end
 
 local SortMethod = function(a, b)
@@ -156,6 +159,7 @@ end
 local UpdateBars = function(frame)
 	table.sort(barguids, SortMethod)
 	local color, cur, max
+	local num = 0
 	for i, v in pairs(barguids) do
 		if not bar[i] then 
 			bar[i] = CreateBar()
@@ -163,14 +167,16 @@ local UpdateBars = function(frame)
 		end
 		cur = display[v]
 		max = display[barguids[1]]
+		if cur[sMode] == 0 then break end
 		bar[i]:SetValue(100 * cur[sMode] / max[sMode])
 		color = RAID_CLASS_COLORS[cur.class]
 		bar[i]:SetStatusBarColor(color.r, color.g, color.b)
-		bar[i].right:SetFormattedText("%s (%.0f)", truncate(cur[sMode]), dps(cur[sMode]))
+		bar[i].right:SetFormattedText("%s (%.0f)", truncate(cur[sMode]), dps(cur))
 		bar[i].left:SetText(cur.name)
 		bar[i]:Show()
+		num = num + 1
 	end
-	DisplayFrame:SetHeight((barheight+spacing)*#barguids)
+	DisplayFrame:SetHeight((barheight+spacing)*num)
 end
 
 local ResetDisplay = function(fight)
@@ -195,7 +201,11 @@ end
 
 local SetMode = function(mode)
 	sMode = mode
+	for i, v in pairs(bar) do
+		v:Hide()
+	end
 	UpdateBars(DisplayFrame)
+	MainFrame.title:SetText(sMode)
 end
 
 local CreateMenu = function(self, level)
@@ -406,6 +416,7 @@ local OnEvent = function(self, event, ...)
 			MainFrame:SetHeight(height)
 			MainFrame:SetBackdrop(backdrop)
 			MainFrame:SetBackdropColor(0, 0, 0, 0.5)
+			MainFrame:SetBackdropBorderColor(0, 0, 0, 1)
 			MainFrame:SetHorizontalScroll(0)
 			MainFrame:SetVerticalScroll(0)
 			MainFrame:EnableMouse(true)
@@ -419,15 +430,18 @@ local OnEvent = function(self, event, ...)
 			texture:SetAllPoints(button)
 			button:SetPoint("BOTTOMRIGHT", MainFrame, "TOPRIGHT", 0, 2)
 			button:SetScript("OnClick", Menu)
+			MainFrame.title = CreateFS(MainFrame, 11)
+			MainFrame.title:SetPoint("BOTTOMLEFT", MainFrame, "TOPLEFT", 0, 1)
+			MainFrame.title:SetText(sMode)
 		end
 	elseif event == "RAID_ROSTER_UPDATE" or event == "PARTY_MEMBERS_CHANGED" then
 		if GetNumRaidMembers() > 0 then
 			for i = 1, 40 do
-				CheckUnit("raid" .. i)
+				CheckUnit("raid"..i)
 			end
 		elseif GetNumPartyMembers() > 0 then
 			for i = 1, 4 do
-				CheckUnit("party" .. i)
+				CheckUnit("party"..i)
 			end
 		end
 	elseif event == "PLAYER_ENTERING_WORLD" then
@@ -455,7 +469,10 @@ addon:RegisterEvent("PLAYER_REGEN_DISABLED")
 addon:RegisterEvent("UNIT_PET")
 
 SlashCmdList["alDamage"] = function(msg)
-	Add(UnitGUID("player"), 100500)
+	Add(UnitGUID("player"), 100500, "Damage")
+	Add(UnitGUID("player"), 10500, "Healing")
+	Add(UnitGUID("player"), 1, "Dispels")
+	Add(UnitGUID("player"), 3, "Interrupts")
 	display = current
 	UpdateBars(DisplayFrame)
 end
