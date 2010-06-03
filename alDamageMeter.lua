@@ -82,7 +82,11 @@ local report = function(channel)
 	local message
 	for i, v in pairs(barguids) do
 		if i > reportstrings then return end
-		message = string.format("%2d. %s    %s (%.0f)", i, display[v].name, truncate(display[v][sMode]), dps(display[v]))
+		if sMode == "Damage" or sMode == "Healing" then
+			message = string.format("%2d. %s    %s (%.0f)", i, display[v].name, truncate(display[v][sMode]), dps(display[v]))
+		else
+			message = string.format("%2d. %s    %s", i, display[v].name, truncate(display[v][sMode]))
+		end
 		if channel == "Chat" then
 			DEFAULT_CHAT_FRAME:AddMessage(message)
 		else
@@ -171,7 +175,11 @@ local UpdateBars = function(frame)
 		bar[i]:SetValue(100 * cur[sMode] / max[sMode])
 		color = RAID_CLASS_COLORS[cur.class]
 		bar[i]:SetStatusBarColor(color.r, color.g, color.b)
-		bar[i].right:SetFormattedText("%s (%.0f)", truncate(cur[sMode]), dps(cur))
+		if sMode == "Damage" or sMode == "Healing" then
+			bar[i].right:SetFormattedText("%s (%.0f)", truncate(cur[sMode]), dps(cur))
+		else
+			bar[i].right:SetFormattedText("%s", truncate(cur[sMode]))
+		end
 		bar[i].left:SetText(cur.name)
 		bar[i]:Show()
 		num = num + 1
