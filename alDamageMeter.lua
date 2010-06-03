@@ -79,7 +79,12 @@ local dps = function(cdata)
 end
 
 local report = function(channel)
-	local message
+	local message = sMode..":"
+	if channel == "Chat" then
+		DEFAULT_CHAT_FRAME:AddMessage(message)
+	else
+		SendChatMessage(message, channel)
+	end
 	for i, v in pairs(barguids) do
 		if i > reportstrings then return end
 		if sMode == "Damage" or sMode == "Healing" then
