@@ -362,9 +362,9 @@ local OnEvent = function(self, event, ...)
 	if event == "COMBAT_LOG_EVENT_UNFILTERED" then
 		local timestamp, eventType, sourceGUID, sourceName, sourceFlags, destGUID, destName, destFlags = select(1, ...)
 		if not bit.band(sourceFlags, filter) then return end
-		if eventType=="SWING_DAMAGE" or eventType=="RANGE_DAMAGE" or eventType=="SPELL_DAMAGE" or eventType=="SPELL_PERIODIC_DAMAGE" and combatstarted then
+		if eventType=="SWING_DAMAGE" or eventType=="RANGE_DAMAGE" or eventType=="SPELL_DAMAGE" or eventType=="SPELL_PERIODIC_DAMAGE" then
 			local ammount = select(eventType=="SWING_DAMAGE" and 9 or 12, ...)
-			if IsFriendlyUnit(sourceGUID) and not IsFriendlyUnit(destGUID) then
+			if IsFriendlyUnit(sourceGUID) and not IsFriendlyUnit(destGUID) and combatstarted then
 				if ammount and ammount > 0 then
 					sourceGUID = owners[sourceGUID] or sourceGUID
 					Add(sourceGUID, ammount, 'Damage')
@@ -379,22 +379,22 @@ local OnEvent = function(self, event, ...)
 			owners[destGUID] = sourceGUID
 			pets[sourceGUID] = destGUID
 			return
-		elseif eventType=="SPELL_HEAL" or eventType=="SPELL_PERIDOIC_HEAL" and combatstarted then
+		elseif eventType=="SPELL_HEAL" or eventType=="SPELL_PERIDOIC_HEAL" then
 			spellId, spellName, spellSchool, ammount, over, school, resist = select(9, ...)
-			if IsFriendlyUnit(sourceGUID) and IsFriendlyUnit(destGUID) then
+			if IsFriendlyUnit(sourceGUID) and IsFriendlyUnit(destGUID) and combatstarted then
 				over = over or 0
 				if ammount and ammount > 0 then
 					sourceGUID = owners[sourceGUID] or sourceGUID
 					Add(sourceGUID, ammount - over, "Healing")
 				end
 			end
-		elseif eventType=="SPELL_DISPEL" and combatstarted then
-			if IsFriendlyUnit(sourceGUID) and IsFriendlyUnit(destGUID) then
+		elseif eventType=="SPELL_DISPEL" then
+			if IsFriendlyUnit(sourceGUID) and IsFriendlyUnit(destGUID) and combatstarted then
 				sourceGUID = owners[sourceGUID] or sourceGUID
 				Add(sourceGUID, 1, "Dispels")
 			end
-		elseif eventType=="SPELL_INTERRUPT" and combatstarted then
-			if IsFriendlyUnit(sourceGUID) and not IsFriendlyUnit(destGUID) then
+		elseif eventType=="SPELL_INTERRUPT" then
+			if IsFriendlyUnit(sourceGUID) and not IsFriendlyUnit(destGUID) and combatstarted then
 				sourceGUID = owners[sourceGUID] or sourceGUID
 				Add(sourceGUID, 1, "Interrupts")
 			end
