@@ -12,11 +12,12 @@ local border_color = {0, 0, 0, 1}
 -- Config end
 
 local boss = LibStub("LibBossIDs-1.0")
+local dataobj = LibStub:GetLibrary('LibDataBroker-1.1'):NewDataObject('Dps', {text = 'DPS: ', icon = "", iconCoords = {0.065, 0.935, 0.065, 0.935}})
 local bossname, mobname = nil, nil
 local units, guids, bar, barguids, owners, pets = {}, {}, {}, {}, {}, {}
 local current, display, fights, udata = {}, {}, {}
 local timer = 0
-local MainFrame, DisplayFrame
+local addon, MainFrame, DisplayFrame
 local combatstarted = false
 local filter = COMBATLOG_OBJECT_AFFILIATION_RAID + COMBATLOG_OBJECT_AFFILIATION_PARTY + COMBATLOG_OBJECT_AFFILIATION_MINE
 local backdrop = {
@@ -43,6 +44,26 @@ local truncate = function(value)
 		return string.format('%.1fk', value / 1e3)
 	else
 		return string.format('%.0f', value)
+	end
+end
+
+function dataobj.OnLeave()
+	GameTooltip:SetClampedToScreen(true)
+	GameTooltip:Hide()
+end
+
+function dataobj.OnEnter(self)
+	GameTooltip:SetOwner(self, 'ANCHOR_BOTTOMLEFT', 0, self:GetHeight())
+	GameTooltip:AddLine("alDamageMeter")
+	GameTooltip:AddLine("Hint: click to show/hide damage meter window.")
+	GameTooltip:Show()
+end
+
+function dataobj.OnClick(self, button)
+	if addon:IsShown() then
+		addon:Hide()
+	else
+		addon:Show()
 	end
 end
 
@@ -357,6 +378,9 @@ local OnUpdate = function(self, elapsed)
 			if IsUnitInCombat(i) then
 				v.combatTime = v.combatTime + timer
 			end
+			if i == UnitGUID("player") then
+				dataobj.text = string.format("DPS: %.0f", v["Damage"] / v.combatTime)
+			end
 		end
 		UpdateBars(DisplayFrame)
 		if not InCombatLockdown() and not IsRaidInCombat() then
@@ -433,7 +457,7 @@ local OnEvent = function(self, event, ...)
 			MainFrame:SetPoint("TOPLEFT", self, "TOPLEFT", 1, -1)
 			MainFrame:SetWidth(width)
 			MainFrame:SetHeight(height)
-			DisplayFrame = CreateFrame("Frame", "alDamageDisplayFrame", UIParent)
+			DisplayFrame = CreateFrame("Frame", "alDamageDisplayFrame", MainFrame)
 			DisplayFrame:SetPoint("TOPLEFT", MainFrame, "TOPLEFT", 0, 0)
 			DisplayFrame:SetWidth(width)
 			DisplayFrame:SetHeight(height)
@@ -479,7 +503,7 @@ local OnEvent = function(self, event, ...)
 	end
 end
 
-local addon = CreateFrame("frame", nil, UIParent)
+addon = CreateFrame("frame", nil, UIParent)
 addon:SetScript('OnEvent', OnEvent)
 addon:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
 addon:RegisterEvent("ADDON_LOADED")
