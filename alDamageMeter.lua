@@ -4,9 +4,11 @@ local x, y = 12, -12
 local width, height = 130, 130
 local barheight = 14
 local spacing = 1
-local maxbars = 20
 local maxfights = 10
 local reportstrings = 10
+local texture = "Interface\\TargetingFrame\\UI-StatusBar"
+local backdrop_color = {0, 0, 0, 0.3}
+local border_color = {0, 0, 0, 1}
 -- Config end
 
 local boss = LibStub("LibBossIDs-1.0")
@@ -129,7 +131,7 @@ local reportList = {
 
 local CreateBar = function()
 	local newbar = CreateFrame("Statusbar", nil, DisplayFrame)
-	newbar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
+	newbar:SetStatusBarTexture(texture)
 	newbar:SetMinMaxValues(0, 100)
 	newbar:SetWidth(width)
 	newbar:SetHeight(barheight)
@@ -422,8 +424,8 @@ local OnEvent = function(self, event, ...)
 			self:SetWidth(width)
 			self:SetHeight(height)
 			self:SetBackdrop(backdrop)
-			self:SetBackdropColor(0, 0, 0, 0.3)
-			self:SetBackdropBorderColor(0, 0, 0, 1)
+			self:SetBackdropColor(unpack(backdrop_color))
+			self:SetBackdropBorderColor(unpack(border_color))
 			width = width - 2
 			height = height - 2
 			MainFrame = CreateFrame("ScrollFrame", "alDamageScrollFrame", self, "UIPanelScrollFrameTemplate")
