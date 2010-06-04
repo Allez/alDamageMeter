@@ -392,7 +392,7 @@ local OnEvent = function(self, event, ...)
 			owners[destGUID] = sourceGUID
 			pets[sourceGUID] = destGUID
 			return
-		elseif eventType=="SPELL_HEAL" or eventType=="SPELL_PERIDOIC_HEAL" then
+		elseif eventType=="SPELL_HEAL" or eventType=="SPELL_PERIODIC_HEAL" then
 			spellId, spellName, spellSchool, ammount, over, school, resist = select(9, ...)
 			if IsFriendlyUnit(sourceGUID) and IsFriendlyUnit(destGUID) and combatstarted then
 				over = over or 0
@@ -422,7 +422,7 @@ local OnEvent = function(self, event, ...)
 			self:SetWidth(width)
 			self:SetHeight(height)
 			self:SetBackdrop(backdrop)
-			self:SetBackdropColor(0, 0, 0, 0.5)
+			self:SetBackdropColor(0, 0, 0, 0.3)
 			self:SetBackdropBorderColor(0, 0, 0, 1)
 			width = width - 2
 			height = height - 2
