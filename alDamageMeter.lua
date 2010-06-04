@@ -427,6 +427,7 @@ local OnEvent = function(self, event, ...)
 			width = width - 2
 			height = height - 2
 			MainFrame = CreateFrame("ScrollFrame", "alDamageScrollFrame", self, "UIPanelScrollFrameTemplate")
+			_G["alDamageScrollFrameScrollBar"]:SetAlpha(0)
 			MainFrame:SetPoint("TOPLEFT", self, "TOPLEFT", 1, -1)
 			MainFrame:SetWidth(width)
 			MainFrame:SetHeight(height)
