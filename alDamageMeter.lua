@@ -453,7 +453,6 @@ local OnEvent = function(self, event, ...)
 			width = width - 2
 			height = height - 2
 			MainFrame = CreateFrame("ScrollFrame", "alDamageScrollFrame", self, "UIPanelScrollFrameTemplate")
-			_G["alDamageScrollFrameScrollBar"]:SetAlpha(0)
 			MainFrame:SetPoint("TOPLEFT", self, "TOPLEFT", 1, -1)
 			MainFrame:SetWidth(width)
 			MainFrame:SetHeight(height)
@@ -478,6 +477,10 @@ local OnEvent = function(self, event, ...)
 			MainFrame.title = CreateFS(MainFrame, 11)
 			MainFrame.title:SetPoint("BOTTOMLEFT", MainFrame, "TOPLEFT", 0, 1)
 			MainFrame.title:SetText(sMode)
+			_G["alDamageScrollFrameScrollBar"]:SetAlpha(0)
+			_G["alDamageScrollFrameScrollBar"]:EnableMouse(false)
+			_G["alDamageScrollFrameScrollBarScrollUpButton"]:EnableMouse(false)
+			_G["alDamageScrollFrameScrollBarScrollDownButton"]:EnableMouse(false)
 		end
 	elseif event == "RAID_ROSTER_UPDATE" or event == "PARTY_MEMBERS_CHANGED" then
 		if GetNumRaidMembers() > 0 then
