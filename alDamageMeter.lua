@@ -1,18 +1,20 @@
 -- Config start
 local anchor = "TOPLEFT"
 local x, y = 12, -12
-local width, height = 130, 130
+local width, height = 125, 125
 local barheight = 14
 local spacing = 1
 local maxfights = 10
 local reportstrings = 10
 local texture = "Interface\\TargetingFrame\\UI-StatusBar"
-local backdrop_color = {0, 0, 0, 0.3}
+local backdrop_color = {0, 0, 0, 0.5}
 local border_color = {0, 0, 0, 1}
+local hidetitle = false
 -- Config end
 
+local addon_name, ns = ...
 local boss = LibStub("LibBossIDs-1.0")
-local dataobj = LibStub:GetLibrary('LibDataBroker-1.1'):NewDataObject('Dps', {text = 'DPS: ', icon = "", iconCoords = {0.065, 0.935, 0.065, 0.935}})
+local dataobj = LibStub:GetLibrary('LibDataBroker-1.1'):NewDataObject('Dps', {type = "data source", text = 'DPS: ', icon = "", iconCoords = {0.065, 0.935, 0.065, 0.935}})
 local bossname, mobname = nil, nil
 local units, guids, bar, barguids, owners, pets = {}, {}, {}, {}, {}, {}
 local current, display, fights, udata = {}, {}, {}
@@ -311,8 +313,10 @@ local CreateMenu = function(self, level)
 	end
 end
 
-local Menu = function(self)
-	ToggleDropDownMenu(1, nil, menuFrame, self, 0, 0)
+local OnMouseUp = function(self, button)
+	if button == "RightButton" then
+		ToggleDropDownMenu(1, nil, menuFrame, 'cursor', 0, 0)
+	end
 end
 
 local EndCombat = function()
@@ -442,21 +446,22 @@ local OnEvent = function(self, event, ...)
 		end
 	elseif event == "ADDON_LOADED" then
 		local name = ...
-		if name == "alDamageMeter" then
-			self:UnregisterEvent("ADDON_LOADED")
+		if name == addon_name then
+			self:UnregisterEvent(event)
 			self:SetPoint(anchor, UIParent, anchor, x, y)
 			self:SetWidth(width)
 			self:SetHeight(height)
 			self:SetBackdrop(backdrop)
 			self:SetBackdropColor(unpack(backdrop_color))
 			self:SetBackdropBorderColor(unpack(border_color))
+			self:SetScript("OnMouseUp", OnMouseUp)
 			width = width - 2
 			height = height - 2
-			MainFrame = CreateFrame("ScrollFrame", "alDamageScrollFrame", self, "UIPanelScrollFrameTemplate")
+			MainFrame = CreateFrame("ScrollFrame", addon_name.."ScrollFrame", self, "UIPanelScrollFrameTemplate")
 			MainFrame:SetPoint("TOPLEFT", self, "TOPLEFT", 1, -1)
 			MainFrame:SetWidth(width)
 			MainFrame:SetHeight(height)
-			DisplayFrame = CreateFrame("Frame", "alDamageDisplayFrame", MainFrame)
+			DisplayFrame = CreateFrame("Frame", addon_name.."DisplayFrame", MainFrame)
 			DisplayFrame:SetPoint("TOPLEFT", MainFrame, "TOPLEFT", 0, 0)
 			DisplayFrame:SetWidth(width)
 			DisplayFrame:SetHeight(height)
@@ -466,21 +471,14 @@ local OnEvent = function(self, event, ...)
 			MainFrame:EnableMouse(true)
 			MainFrame:Show()
 			UIDropDownMenu_Initialize(menuFrame, CreateMenu, "MENU")
-			local button = CreateFrame("Button", nil, MainFrame)
-			button:SetWidth(9)
-			button:SetHeight(9)
-			button:SetBackdrop(backdrop)
-			button:SetBackdropColor(unpack(backdrop_color))
-			button:SetBackdropBorderColor(unpack(border_color))
-			button:SetPoint("BOTTOMRIGHT", MainFrame, "TOPRIGHT", 1, 2)
-			button:SetScript("OnClick", Menu)
 			MainFrame.title = CreateFS(MainFrame, 11)
 			MainFrame.title:SetPoint("BOTTOMLEFT", MainFrame, "TOPLEFT", 0, 1)
 			MainFrame.title:SetText(sMode)
-			_G["alDamageScrollFrameScrollBar"]:SetAlpha(0)
-			_G["alDamageScrollFrameScrollBar"]:EnableMouse(false)
-			_G["alDamageScrollFrameScrollBarScrollUpButton"]:EnableMouse(false)
-			_G["alDamageScrollFrameScrollBarScrollDownButton"]:EnableMouse(false)
+			if hidetitle then MainFrame.title:Hide() end
+			_G[addon_name.."ScrollFrameScrollBar"]:SetAlpha(0)
+			_G[addon_name.."ScrollFrameScrollBar"]:EnableMouse(false)
+			_G[addon_name.."ScrollFrameScrollBarScrollUpButton"]:EnableMouse(false)
+			_G[addon_name.."ScrollFrameScrollBarScrollDownButton"]:EnableMouse(false)
 		end
 	elseif event == "RAID_ROSTER_UPDATE" or event == "PARTY_MEMBERS_CHANGED" then
 		if GetNumRaidMembers() > 0 then
