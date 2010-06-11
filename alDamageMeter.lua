@@ -16,8 +16,8 @@ local addon_name, ns = ...
 local boss = LibStub("LibBossIDs-1.0")
 local dataobj = LibStub:GetLibrary('LibDataBroker-1.1'):NewDataObject('Dps', {type = "data source", text = 'DPS: ', icon = "", iconCoords = {0.065, 0.935, 0.065, 0.935}})
 local bossname, mobname = nil, nil
-local units, guids, bar, barguids, owners, pets = {}, {}, {}, {}, {}, {}
-local current, display, fights, udata = {}, {}, {}
+local guids, bar, barguids, owners = {}, {}, {}, {}
+local current, display, fights, udata = {}, {}, {}, {}
 local timer = 0
 local addon, MainFrame, DisplayFrame
 local combatstarted = false
@@ -332,13 +332,9 @@ local EndCombat = function()
 	end
 end
 
-local UpdatePets = function(unit, pet)
+local CheckPet = function(unit, pet)
 	if UnitExists(pet) then
 		owners[UnitGUID(pet)] = UnitGUID(unit)
-		pets[UnitGUID(unit)] = UnitGUID(pet)
-	elseif pets[UnitGUID(unit)] then
-		owners[pets[UnitGUID(unit)]] = nil
-		pets[UnitGUID(unit)] = nil
 	end
 end
 
@@ -348,13 +344,9 @@ local CheckUnit = function(unit)
 		if guid == UnitGUID("player") then
 			unit = "player"
 		end
-		units[unit] = guid
 		guids[guid] = unit
 		pet = unit .. "pet"
-		UpdatePets(unit, pet)
-	elseif units[unit] then
-		guids[units[unit]] = nil
-		units[unit] = nil
+		CheckPet(unit, pet)
 	end
 end
 
@@ -420,7 +412,6 @@ local OnEvent = function(self, event, ...)
 			end
 		elseif eventType=="SPELL_SUMMON" then
 			owners[destGUID] = sourceGUID
-			pets[sourceGUID] = destGUID
 			return
 		elseif eventType=="SPELL_HEAL" or eventType=="SPELL_PERIODIC_HEAL" then
 			spellId, spellName, spellSchool, ammount, over, school, resist = select(9, ...)
@@ -455,16 +446,13 @@ local OnEvent = function(self, event, ...)
 			self:SetBackdropColor(unpack(backdrop_color))
 			self:SetBackdropBorderColor(unpack(border_color))
 			self:SetScript("OnMouseUp", OnMouseUp)
-			width = width - 2
-			height = height - 2
 			MainFrame = CreateFrame("ScrollFrame", addon_name.."ScrollFrame", self, "UIPanelScrollFrameTemplate")
-			MainFrame:SetPoint("TOPLEFT", self, "TOPLEFT", 1, -1)
-			MainFrame:SetWidth(width)
-			MainFrame:SetHeight(height)
+			MainFrame:SetPoint("TOPLEFT", 1, -1)
+			MainFrame:SetPoint("BOTTOMRIGHT", -1, 1)
 			DisplayFrame = CreateFrame("Frame", addon_name.."DisplayFrame", MainFrame)
-			DisplayFrame:SetPoint("TOPLEFT", MainFrame, "TOPLEFT", 0, 0)
-			DisplayFrame:SetWidth(width)
-			DisplayFrame:SetHeight(height)
+			DisplayFrame:SetPoint("TOPLEFT", 0, 0)
+			DisplayFrame:SetPoint("TOPRIGHT", 0, 0)
+			DisplayFrame:SetHeight(0)
 			MainFrame:SetScrollChild(DisplayFrame)
 			MainFrame:SetHorizontalScroll(0)
 			MainFrame:SetVerticalScroll(0)
@@ -481,12 +469,13 @@ local OnEvent = function(self, event, ...)
 			_G[addon_name.."ScrollFrameScrollBarScrollDownButton"]:EnableMouse(false)
 		end
 	elseif event == "RAID_ROSTER_UPDATE" or event == "PARTY_MEMBERS_CHANGED" then
+		wipe(guids)
 		if GetNumRaidMembers() > 0 then
-			for i = 1, 40 do
+			for i = 1, GetNumRaidMembers(), 1 do
 				CheckUnit("raid"..i)
 			end
 		elseif GetNumPartyMembers() > 0 then
-			for i = 1, 4 do
+			for i = 1, GetNumPartyMembers(), 1 do
 				CheckUnit("party"..i)
 			end
 		end
@@ -500,7 +489,12 @@ local OnEvent = function(self, event, ...)
 	elseif event == "UNIT_PET" then
 		local unit = ...
 		local pet = unit .. "pet"
-		UpdatePets(unit, pet)
+		CheckPet(unit, pet)
+		for i, v in pairs(owners) do
+			if not UnitExists(guids[v]) then
+				owners[i] = nil
+			end
+		end
 	end
 end
 
