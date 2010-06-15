@@ -1,7 +1,7 @@
 -- Config start
 local anchor = "TOPLEFT"
 local x, y = 12, -12
-local width, height = 125, 125
+local width, height = 126, 126
 local barheight = 14
 local spacing = 1
 local maxfights = 10
@@ -156,7 +156,7 @@ local CreateBar = function()
 	local newbar = CreateFrame("Statusbar", nil, DisplayFrame)
 	newbar:SetStatusBarTexture(texture)
 	newbar:SetMinMaxValues(0, 100)
-	newbar:SetWidth(width)
+	newbar:SetWidth(width-2)
 	newbar:SetHeight(barheight)
 	newbar.left = CreateFS(newbar, 11)
 	newbar.left:SetPoint("LEFT", 2, 0)
@@ -197,7 +197,7 @@ local UpdateBars = function(frame)
 	for i, v in pairs(barguids) do
 		if not bar[i] then 
 			bar[i] = CreateBar()
-			bar[i]:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, -(barheight+spacing)*(i-1))
+			bar[i]:SetPoint("TOPLEFT", DisplayFrame, "TOPLEFT", 0, -(barheight+spacing)*(i-1))
 		end
 		cur = display[v]
 		max = display[barguids[1]]
@@ -340,11 +340,7 @@ end
 
 local CheckUnit = function(unit)
 	if UnitExists(unit) then
-		guid = UnitGUID(unit)
-		if guid == UnitGUID("player") then
-			unit = "player"
-		end
-		guids[guid] = unit
+		guids[UnitGUID(unit)] = unit
 		pet = unit .. "pet"
 		CheckPet(unit, pet)
 	end
@@ -411,8 +407,11 @@ local OnEvent = function(self, event, ...)
 				end
 			end
 		elseif eventType=="SPELL_SUMMON" then
-			owners[destGUID] = sourceGUID
-			return
+			if owners[sourceGUID] then 
+				owners[destGUID] = owners[sourceGUID]
+			else
+				owners[destGUID] = sourceGUID
+			end
 		elseif eventType=="SPELL_HEAL" or eventType=="SPELL_PERIODIC_HEAL" then
 			spellId, spellName, spellSchool, ammount, over, school, resist = select(9, ...)
 			if IsFriendlyUnit(sourceGUID) and IsFriendlyUnit(destGUID) and combatstarted then
@@ -440,23 +439,22 @@ local OnEvent = function(self, event, ...)
 		if name == addon_name then
 			self:UnregisterEvent(event)
 			self:SetPoint(anchor, UIParent, anchor, x, y)
-			self:SetWidth(width)
-			self:SetHeight(height)
+			self:SetSize(width, height)
 			self:SetBackdrop(backdrop)
 			self:SetBackdropColor(unpack(backdrop_color))
 			self:SetBackdropBorderColor(unpack(border_color))
-			self:SetScript("OnMouseUp", OnMouseUp)
 			MainFrame = CreateFrame("ScrollFrame", addon_name.."ScrollFrame", self, "UIPanelScrollFrameTemplate")
 			MainFrame:SetPoint("TOPLEFT", 1, -1)
 			MainFrame:SetPoint("BOTTOMRIGHT", -1, 1)
 			DisplayFrame = CreateFrame("Frame", addon_name.."DisplayFrame", MainFrame)
-			DisplayFrame:SetPoint("TOPLEFT", 0, 0)
-			DisplayFrame:SetPoint("TOPRIGHT", 0, 0)
-			DisplayFrame:SetHeight(0)
+			DisplayFrame:SetPoint("TOPLEFT", MainFrame, "TOPLEFT", 0, 0)
+			DisplayFrame:SetPoint("TOPRIGHT", MainFrame, "TOPRIGHT", 0, 0)
+			DisplayFrame:SetSize(width-2, 0)
 			MainFrame:SetScrollChild(DisplayFrame)
 			MainFrame:SetHorizontalScroll(0)
 			MainFrame:SetVerticalScroll(0)
 			MainFrame:EnableMouse(true)
+			MainFrame:SetScript("OnMouseUp", OnMouseUp)
 			MainFrame:Show()
 			UIDropDownMenu_Initialize(menuFrame, CreateMenu, "MENU")
 			MainFrame.title = CreateFS(MainFrame, 11)
@@ -468,7 +466,7 @@ local OnEvent = function(self, event, ...)
 			_G[addon_name.."ScrollFrameScrollBarScrollUpButton"]:EnableMouse(false)
 			_G[addon_name.."ScrollFrameScrollBarScrollDownButton"]:EnableMouse(false)
 		end
-	elseif event == "RAID_ROSTER_UPDATE" or event == "PARTY_MEMBERS_CHANGED" then
+	elseif event == "RAID_ROSTER_UPDATE" or event == "PARTY_MEMBERS_CHANGED" or event == "PLAYER_ENTERING_WORLD" then
 		wipe(guids)
 		if GetNumRaidMembers() > 0 then
 			for i = 1, GetNumRaidMembers(), 1 do
@@ -479,9 +477,7 @@ local OnEvent = function(self, event, ...)
 				CheckUnit("party"..i)
 			end
 		end
-	elseif event == "PLAYER_ENTERING_WORLD" then
-		units["player"] = UnitGUID("player")
-		guids[UnitGUID("player")] = "player"
+		CheckUnit("player")
 	elseif event == "PLAYER_REGEN_DISABLED" then
 		if not combatstarted then
 			StartCombat()
