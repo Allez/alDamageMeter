@@ -19,7 +19,7 @@ local bossname, mobname = nil, nil
 local guids, bar, barguids, owners = {}, {}, {}, {}
 local current, display, fights, udata = {}, {}, {}, {}
 local timer = 0
-local addon, MainFrame, DisplayFrame
+local MainFrame, DisplayFrame
 local combatstarted = false
 local filter = COMBATLOG_OBJECT_AFFILIATION_RAID + COMBATLOG_OBJECT_AFFILIATION_PARTY + COMBATLOG_OBJECT_AFFILIATION_MINE
 local backdrop = {
@@ -62,10 +62,10 @@ function dataobj.OnEnter(self)
 end
 
 function dataobj.OnClick(self, button)
-	if addon:IsShown() then
-		addon:Hide()
+	if MainFrame:IsShown() then
+		MainFrame:Hide()
 	else
-		addon:Show()
+		MainFrame:Show()
 	end
 end
 
@@ -89,6 +89,17 @@ local CreateFS = function(frame, fsize, fstyle)
 	local fstring = frame:CreateFontString(nil, 'OVERLAY', 'GameFontHighlight')
 	fstring:SetFont(GameFontHighlight:GetFont(), fsize, fstyle)
 	return fstring
+end
+
+local CreateBG = function(parent)
+	local bg = CreateFrame("Frame", nil, parent)
+	bg:SetPoint("TOPLEFT", parent, "TOPLEFT", -1, 1)
+	bg:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", 1, -1)
+	bg:SetFrameStrata("LOW")
+	bg:SetBackdrop(backdrop)
+	bg:SetBackdropColor(unpack(backdrop_color))
+	bg:SetBackdropBorderColor(unpack(border_color))
+	return bg
 end
 
 local tcopy = function(src)
@@ -190,7 +201,7 @@ local SortMethod = function(a, b)
 	return display[b][sMode] < display[a][sMode]
 end
 
-local UpdateBars = function(frame)
+local UpdateBars = function()
 	table.sort(barguids, SortMethod)
 	local color, cur, max
 	local num = 0
@@ -227,7 +238,7 @@ local ResetDisplay = function(fight)
 		tinsert(barguids, guid)
 	end
 	MainFrame:SetVerticalScroll(0)
-	UpdateBars(DisplayFrame)
+	UpdateBars()
 end
 
 local Clean = function()
@@ -242,7 +253,7 @@ local SetMode = function(mode)
 	for i, v in pairs(bar) do
 		v:Hide()
 	end
-	UpdateBars(DisplayFrame)
+	UpdateBars()
 	MainFrame.title:SetText(sMode)
 end
 
@@ -374,7 +385,7 @@ local OnUpdate = function(self, elapsed)
 				dataobj.text = string.format("DPS: %.0f", v["Damage"] / v.combatTime)
 			end
 		end
-		UpdateBars(DisplayFrame)
+		UpdateBars()
 		if not InCombatLockdown() and not IsRaidInCombat() then
 			EndCombat()
 		end
@@ -438,18 +449,14 @@ local OnEvent = function(self, event, ...)
 		local name = ...
 		if name == addon_name then
 			self:UnregisterEvent(event)
-			self:SetPoint(anchor, UIParent, anchor, x, y)
-			self:SetSize(width, height)
-			self:SetBackdrop(backdrop)
-			self:SetBackdropColor(unpack(backdrop_color))
-			self:SetBackdropBorderColor(unpack(border_color))
-			MainFrame = CreateFrame("ScrollFrame", addon_name.."ScrollFrame", self, "UIPanelScrollFrameTemplate")
-			MainFrame:SetPoint("TOPLEFT", 1, -1)
-			MainFrame:SetPoint("BOTTOMRIGHT", -1, 1)
+			MainFrame = CreateFrame("ScrollFrame", addon_name.."ScrollFrame", UIParent, "UIPanelScrollFrameTemplate")
+			MainFrame:SetPoint(anchor, UIParent, anchor, x, y)
+			MainFrame:SetSize(width, height)
+			MainFrame.bg = CreateBG(MainFrame)
 			DisplayFrame = CreateFrame("Frame", addon_name.."DisplayFrame", MainFrame)
-			DisplayFrame:SetPoint("TOPLEFT", MainFrame, "TOPLEFT", 0, 0)
-			DisplayFrame:SetPoint("TOPRIGHT", MainFrame, "TOPRIGHT", 0, 0)
-			DisplayFrame:SetSize(width-2, 0)
+			DisplayFrame:SetPoint("TOPLEFT")
+			DisplayFrame:SetPoint("TOPRIGHT")
+			DisplayFrame:SetSize(width, 0)
 			MainFrame:SetScrollChild(DisplayFrame)
 			MainFrame:SetHorizontalScroll(0)
 			MainFrame:SetVerticalScroll(0)
@@ -494,7 +501,7 @@ local OnEvent = function(self, event, ...)
 	end
 end
 
-addon = CreateFrame("frame", nil, UIParent)
+local addon = CreateFrame("frame", nil, UIParent)
 addon:SetScript('OnEvent', OnEvent)
 addon:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
 addon:RegisterEvent("ADDON_LOADED")
@@ -510,6 +517,6 @@ SlashCmdList["alDamage"] = function(msg)
 	Add(UnitGUID("player"), 1, "Dispels")
 	Add(UnitGUID("player"), 3, "Interrupts")
 	display = current
-	UpdateBars(DisplayFrame)
+	UpdateBars()
 end
 SLASH_alDamage1 = "/aldmg"
