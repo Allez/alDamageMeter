@@ -206,13 +206,13 @@ local UpdateBars = function()
 	local color, cur, max
 	local num = 0
 	for i, v in pairs(barguids) do
+		cur = display[v]
+		max = display[barguids[1]]
+		if cur[sMode] == 0 then break end
 		if not bar[i] then 
 			bar[i] = CreateBar()
 			bar[i]:SetPoint("TOPLEFT", DisplayFrame, "TOPLEFT", 0, -(barheight+spacing)*(i-1))
 		end
-		cur = display[v]
-		max = display[barguids[1]]
-		if cur[sMode] == 0 then break end
 		bar[i]:SetValue(100 * cur[sMode] / max[sMode])
 		color = RAID_CLASS_COLORS[cur.class]
 		bar[i]:SetStatusBarColor(color.r, color.g, color.b)
