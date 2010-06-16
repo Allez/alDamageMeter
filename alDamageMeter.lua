@@ -1,7 +1,7 @@
 -- Config start
 local anchor = "TOPLEFT"
 local x, y = 12, -12
-local width, height = 126, 126
+local width, height = 125, 125
 local barheight = 14
 local spacing = 1
 local maxfights = 10
@@ -167,7 +167,7 @@ local CreateBar = function()
 	local newbar = CreateFrame("Statusbar", nil, DisplayFrame)
 	newbar:SetStatusBarTexture(texture)
 	newbar:SetMinMaxValues(0, 100)
-	newbar:SetWidth(width-2)
+	newbar:SetWidth(width)
 	newbar:SetHeight(barheight)
 	newbar.left = CreateFS(newbar, 11)
 	newbar.left:SetPoint("LEFT", 2, 0)
@@ -211,7 +211,11 @@ local UpdateBars = function()
 		if cur[sMode] == 0 then break end
 		if not bar[i] then 
 			bar[i] = CreateBar()
-			bar[i]:SetPoint("TOPLEFT", DisplayFrame, "TOPLEFT", 0, -(barheight+spacing)*(i-1))
+			if i == 1 then
+				bar[i]:SetPoint("TOP")
+			else
+				bar[i]:SetPoint("TOP", bar[i-1], "BOTTOM", 0, -spacing)
+			end
 		end
 		bar[i]:SetValue(100 * cur[sMode] / max[sMode])
 		color = RAID_CLASS_COLORS[cur.class]
@@ -321,12 +325,6 @@ local CreateMenu = function(self, level)
 				UIDropDownMenu_AddButton(info, level)
 			end
 		end
-	end
-end
-
-local OnMouseUp = function(self, button)
-	if button == "RightButton" then
-		ToggleDropDownMenu(1, nil, menuFrame, 'cursor', 0, 0)
 	end
 end
 
@@ -460,8 +458,21 @@ local OnEvent = function(self, event, ...)
 			MainFrame:SetScrollChild(DisplayFrame)
 			MainFrame:SetHorizontalScroll(0)
 			MainFrame:SetVerticalScroll(0)
+			MainFrame:SetMovable(true)
 			MainFrame:EnableMouse(true)
-			MainFrame:SetScript("OnMouseUp", OnMouseUp)
+			MainFrame:SetScript("OnMouseDown", function(self, button)
+				if button == "LeftButton" and IsModifiedClick("SHIFT") then
+					self:StartMoving()
+				end
+			end)
+			MainFrame:SetScript("OnMouseUp", function(self, button)
+				if button == "RightButton" then
+					ToggleDropDownMenu(1, nil, menuFrame, 'cursor', 0, 0)
+				end
+				if button == "LeftButton" then
+					self:StopMovingOrSizing()
+				end
+			end)
 			MainFrame:Show()
 			UIDropDownMenu_Initialize(menuFrame, CreateMenu, "MENU")
 			MainFrame.title = CreateFS(MainFrame, 11)
