@@ -16,7 +16,7 @@ local addon_name, ns = ...
 local boss = LibStub("LibBossIDs-1.0")
 local dataobj = LibStub:GetLibrary('LibDataBroker-1.1'):NewDataObject('Dps', {type = "data source", text = 'DPS: ', icon = "", iconCoords = {0.065, 0.935, 0.065, 0.935}})
 local bossname, mobname = nil, nil
-local guids, bar, barguids, owners = {}, {}, {}, {}
+local units, bar, barguids, owners = {}, {}, {}, {}
 local current, display, fights, udata = {}, {}, {}, {}
 local timer = 0
 local MainFrame, DisplayFrame
@@ -70,7 +70,7 @@ function dataobj.OnClick(self, button)
 end
 
 local IsFriendlyUnit = function(uGUID)
-	if guids[uGUID] or owners[uGUID] or uGUID==UnitGUID("player") then
+	if units[uGUID] or owners[uGUID] or uGUID==UnitGUID("player") then
 		return true
 	else
 		return false
@@ -78,7 +78,7 @@ local IsFriendlyUnit = function(uGUID)
 end
 
 local IsUnitInCombat = function(uGUID)
-	unit = guids[uGUID]
+	unit = units[uGUID]
 	if unit then
 		return UnitAffectingCombat(unit)
 	end
@@ -110,7 +110,7 @@ local tcopy = function(src)
 	return dest
 end
 
-local dps = function(cdata)
+local perSecond = function(cdata)
 	return cdata[sMode] / cdata.combatTime
 end
 
@@ -124,7 +124,7 @@ local report = function(channel)
 	for i, v in pairs(barguids) do
 		if i > reportstrings then return end
 		if sMode == "Damage" or sMode == "Healing" then
-			message = string.format("%2d. %s    %s (%.0f)", i, display[v].name, truncate(display[v][sMode]), dps(display[v]))
+			message = string.format("%2d. %s    %s (%.0f)", i, display[v].name, truncate(display[v][sMode]), perSecond(display[v]))
 		else
 			message = string.format("%2d. %s    %s", i, display[v].name, truncate(display[v][sMode]))
 		end
@@ -179,12 +179,11 @@ local CreateBar = function()
 end
 
 local Add = function(uGUID, ammount, mode)
-	local unit = guids[uGUID]
-	if not unit then return end
+	local unit = units[uGUID]
 	if not current[uGUID] then
 		local newdata = {
-			name = UnitName(unit),
-			class = select(2, UnitClass(unit)),
+			name = unit.name,
+			class = unit.class,
 			combatTime = 1,
 		}
 		for _, v in pairs(displayMode) do
@@ -221,7 +220,7 @@ local UpdateBars = function()
 		color = RAID_CLASS_COLORS[cur.class]
 		bar[i]:SetStatusBarColor(color.r, color.g, color.b)
 		if sMode == "Damage" or sMode == "Healing" then
-			bar[i].right:SetFormattedText("%s (%.0f)", truncate(cur[sMode]), dps(cur))
+			bar[i].right:SetFormattedText("%s (%.0f)", truncate(cur[sMode]), perSecond(cur))
 		else
 			bar[i].right:SetFormattedText("%s", truncate(cur[sMode]))
 		end
@@ -349,7 +348,7 @@ end
 
 local CheckUnit = function(unit)
 	if UnitExists(unit) then
-		guids[UnitGUID(unit)] = unit
+		units[UnitGUID(unit)] = { name = UnitName(unit), class = UnitClass(unit), }
 		pet = unit .. "pet"
 		CheckPet(unit, pet)
 	end
@@ -485,7 +484,7 @@ local OnEvent = function(self, event, ...)
 			_G[addon_name.."ScrollFrameScrollBarScrollDownButton"]:EnableMouse(false)
 		end
 	elseif event == "RAID_ROSTER_UPDATE" or event == "PARTY_MEMBERS_CHANGED" or event == "PLAYER_ENTERING_WORLD" then
-		wipe(guids)
+		wipe(units)
 		if GetNumRaidMembers() > 0 then
 			for i = 1, GetNumRaidMembers(), 1 do
 				CheckUnit("raid"..i)
@@ -505,7 +504,7 @@ local OnEvent = function(self, event, ...)
 		local pet = unit .. "pet"
 		CheckPet(unit, pet)
 		for i, v in pairs(owners) do
-			if not UnitExists(guids[v]) then
+			if not UnitExists(units[v]) then
 				owners[i] = nil
 			end
 		end
