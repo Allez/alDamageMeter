@@ -348,7 +348,7 @@ end
 
 local CheckUnit = function(unit)
 	if UnitExists(unit) then
-		units[UnitGUID(unit)] = { name = UnitName(unit), class = UnitClass(unit), }
+		units[UnitGUID(unit)] = { name = UnitName(unit), class = select(2, UnitClass(unit)), }
 		pet = unit .. "pet"
 		CheckPet(unit, pet)
 	end
