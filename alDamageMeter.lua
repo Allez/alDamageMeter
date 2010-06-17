@@ -9,6 +9,7 @@ local reportstrings = 10
 local texture = "Interface\\TargetingFrame\\UI-StatusBar"
 local backdrop_color = {0, 0, 0, 0.5}
 local border_color = {0, 0, 0, 1}
+local border_size = 1
 local hidetitle = false
 -- Config end
 
@@ -24,7 +25,7 @@ local combatstarted = false
 local filter = COMBATLOG_OBJECT_AFFILIATION_RAID + COMBATLOG_OBJECT_AFFILIATION_PARTY + COMBATLOG_OBJECT_AFFILIATION_MINE
 local backdrop = {
 	bgFile = [=[Interface\ChatFrame\ChatFrameBackground]=],
-	edgeFile = [=[Interface\ChatFrame\ChatFrameBackground]=], edgeSize = 1,
+	edgeFile = [=[Interface\ChatFrame\ChatFrameBackground]=], edgeSize = border_size,
 	insets = {top = 0, left = 0, bottom = 0, right = 0},
 }
 local displayMode = {
@@ -93,8 +94,8 @@ end
 
 local CreateBG = function(parent)
 	local bg = CreateFrame("Frame", nil, parent)
-	bg:SetPoint("TOPLEFT", parent, "TOPLEFT", -1, 1)
-	bg:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", 1, -1)
+	bg:SetPoint("TOPLEFT", parent, "TOPLEFT", -border_size, border_size)
+	bg:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", border_size, -border_size)
 	bg:SetFrameStrata("LOW")
 	bg:SetBackdrop(backdrop)
 	bg:SetBackdropColor(unpack(backdrop_color))
