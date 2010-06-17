@@ -210,11 +210,7 @@ local UpdateBars = function()
 		if cur[sMode] == 0 then break end
 		if not bar[i] then 
 			bar[i] = CreateBar()
-			if i == 1 then
-				bar[i]:SetPoint("TOP")
-			else
-				bar[i]:SetPoint("TOP", bar[i-1], "BOTTOM", 0, -spacing)
-			end
+			bar[i]:SetPoint("TOPLEFT", MainFrame, "TOPLEFT", 1, -(barheight + spacing) * (i-1) - 1)
 		end
 		bar[i]:SetValue(100 * cur[sMode] / max[sMode])
 		color = RAID_CLASS_COLORS[cur.class]
