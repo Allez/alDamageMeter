@@ -1,11 +1,12 @@
 -- Config start
 local anchor = "TOPLEFT"
 local x, y = 12, -12
-local width, height = 125, 125
 local barheight = 14
 local spacing = 1
 local maxfights = 10
+local width, height = 125, maxfights*(barheight+spacing)
 local reportstrings = 10
+local maxbars = 8
 local texture = "Interface\\TargetingFrame\\UI-StatusBar"
 local backdrop_color = {0, 0, 0, 0.5}
 local border_color = {0, 0, 0, 1}
@@ -19,8 +20,8 @@ local dataobj = LibStub:GetLibrary('LibDataBroker-1.1'):NewDataObject('Dps', {ty
 local bossname, mobname = nil, nil
 local units, bar, barguids, owners = {}, {}, {}, {}
 local current, display, fights, udata = {}, {}, {}, {}
-local timer = 0
-local MainFrame, DisplayFrame
+local timer, num, offset = 0, 0, 0
+local MainFrame
 local combatstarted = false
 local filter = COMBATLOG_OBJECT_AFFILIATION_RAID + COMBATLOG_OBJECT_AFFILIATION_PARTY + COMBATLOG_OBJECT_AFFILIATION_MINE
 local backdrop = {
@@ -81,7 +82,7 @@ end
 local IsUnitInCombat = function(uGUID)
 	unit = units[uGUID]
 	if unit then
-		return UnitAffectingCombat(unit)
+		return UnitAffectingCombat(unit.unit)
 	end
 	return false
 end
@@ -165,7 +166,7 @@ local reportList = {
 }
 
 local CreateBar = function()
-	local newbar = CreateFrame("Statusbar", nil, DisplayFrame)
+	local newbar = CreateFrame("Statusbar", nil, MainFrame)
 	newbar:SetStatusBarTexture(texture)
 	newbar:SetMinMaxValues(0, 100)
 	newbar:SetWidth(width)
@@ -179,7 +180,7 @@ local CreateBar = function()
 	return newbar
 end
 
-local Add = function(uGUID, ammount, mode)
+local Add = function(uGUID, ammount, mode, name)
 	local unit = units[uGUID]
 	if not current[uGUID] then
 		local newdata = {
@@ -200,14 +201,15 @@ end
 local SortMethod = function(a, b)
 	return display[b][sMode] < display[a][sMode]
 end
-
+local first = 1
+local last = 1
 local UpdateBars = function()
 	table.sort(barguids, SortMethod)
 	local color, cur, max
-	local num = 0
-	for i, v in pairs(barguids) do
-		cur = display[v]
+	for i = 1, #barguids do
+		cur = display[barguids[i+offset]]
 		max = display[barguids[1]]
+		if i > maxbars or not cur then break end
 		if cur[sMode] == 0 then break end
 		if not bar[i] then 
 			bar[i] = CreateBar()
@@ -223,9 +225,7 @@ local UpdateBars = function()
 		end
 		bar[i].left:SetText(cur.name)
 		bar[i]:Show()
-		num = num + 1
 	end
-	DisplayFrame:SetHeight((barheight+spacing)*num)
 end
 
 local ResetDisplay = function(fight)
@@ -237,7 +237,7 @@ local ResetDisplay = function(fight)
 	for guid, v in pairs(display) do
 		tinsert(barguids, guid)
 	end
-	MainFrame:SetVerticalScroll(0)
+	--MainFrame:SetVerticalScroll(0)
 	UpdateBars()
 end
 
@@ -325,7 +325,7 @@ local CreateMenu = function(self, level)
 end
 
 local EndCombat = function()
-	DisplayFrame:SetScript('OnUpdate', nil)
+	MainFrame:SetScript('OnUpdate', nil)
 	combatstarted = false
 	local fname = bossname or mobname
 	if fname then
@@ -345,7 +345,7 @@ end
 
 local CheckUnit = function(unit)
 	if UnitExists(unit) then
-		units[UnitGUID(unit)] = { name = UnitName(unit), class = select(2, UnitClass(unit)), }
+		units[UnitGUID(unit)] = { name = UnitName(unit), class = select(2, UnitClass(unit)), unit = unit}
 		pet = unit .. "pet"
 		CheckPet(unit, pet)
 	end
@@ -387,11 +387,30 @@ local OnUpdate = function(self, elapsed)
 	end
 end
 
+local OnMouseWheel = function(self, direction)
+	num = 0
+	for i = 1, #barguids do
+		if display[barguids[i]][sMode] > 0 then
+			num = num + 1
+		end
+	end
+	if direction > 0 then
+		if offset > 0 then
+			offset = offset - 1
+		end
+	else
+		if num > maxbars + offset then
+			offset = offset + 1
+		end
+	end
+	UpdateBars()
+end
+
 local StartCombat = function()
 	wipe(current)
 	combatstarted = true
 	ResetDisplay(current)
-	DisplayFrame:SetScript('OnUpdate', OnUpdate)
+	MainFrame:SetScript('OnUpdate', OnUpdate)
 end
 
 local OnEvent = function(self, event, ...)
@@ -403,7 +422,7 @@ local OnEvent = function(self, event, ...)
 			if IsFriendlyUnit(sourceGUID) and not IsFriendlyUnit(destGUID) and combatstarted then
 				if ammount and ammount > 0 then
 					sourceGUID = owners[sourceGUID] or sourceGUID
-					Add(sourceGUID, ammount, 'Damage')
+					Add(sourceGUID, ammount, 'Damage', sourceName)
 					if not bossname and boss.BossIDs[tonumber(destGUID:sub(9, 12), 16)] then
 						bossname = destName
 					elseif not mobname then
@@ -447,13 +466,6 @@ local OnEvent = function(self, event, ...)
 			MainFrame:SetPoint(anchor, UIParent, anchor, x, y)
 			MainFrame:SetSize(width, height)
 			MainFrame.bg = CreateBG(MainFrame)
-			DisplayFrame = CreateFrame("Frame", addon_name.."DisplayFrame", MainFrame)
-			DisplayFrame:SetPoint("TOPLEFT")
-			DisplayFrame:SetPoint("TOPRIGHT")
-			DisplayFrame:SetSize(width, 0)
-			MainFrame:SetScrollChild(DisplayFrame)
-			MainFrame:SetHorizontalScroll(0)
-			MainFrame:SetVerticalScroll(0)
 			MainFrame:SetMovable(true)
 			MainFrame:EnableMouse(true)
 			MainFrame:SetScript("OnMouseDown", function(self, button)
@@ -469,6 +481,7 @@ local OnEvent = function(self, event, ...)
 					self:StopMovingOrSizing()
 				end
 			end)
+			MainFrame:SetScript("OnMouseWheel", OnMouseWheel)
 			MainFrame:Show()
 			UIDropDownMenu_Initialize(menuFrame, CreateMenu, "MENU")
 			MainFrame.title = CreateFS(MainFrame, 11)
@@ -514,10 +527,12 @@ addon:RegisterEvent("PLAYER_REGEN_DISABLED")
 addon:RegisterEvent("UNIT_PET")
 
 SlashCmdList["alDamage"] = function(msg)
-	Add(UnitGUID("player"), 100500, "Damage")
-	Add(UnitGUID("player"), 10500, "Healing")
-	Add(UnitGUID("player"), 1, "Dispels")
-	Add(UnitGUID("player"), 3, "Interrupts")
+	for i = 1, 20 do
+		units[i] = {name = UnitName("player"), class = select(2, UnitClass("player")), unit = "1"}
+		Add(i, i*10000, "Damage")
+	end
+	wipe(units)
+	CheckUnit("player")
 	display = current
 	UpdateBars()
 end
