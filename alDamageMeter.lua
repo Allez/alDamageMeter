@@ -500,11 +500,6 @@ local OnEvent = function(self, event, ...)
 		local unit = ...
 		local pet = unit .. "pet"
 		CheckPet(unit, pet)
-		for i, v in pairs(owners) do
-			if not UnitExists(units[v]) then
-				owners[i] = nil
-			end
-		end
 	end
 end
 
