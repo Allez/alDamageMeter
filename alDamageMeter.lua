@@ -1,12 +1,12 @@
 -- Config start
 local anchor = "TOPLEFT"
 local x, y = 12, -12
-local barheight = 14
+local barheight = 15
 local spacing = 1
-local maxfights = 10
-local width, height = 125, maxfights*(barheight+spacing)
-local reportstrings = 10
 local maxbars = 8
+local width, height = 125, maxbars*(barheight+spacing)-1
+local maxfights = 10
+local reportstrings = 10
 local texture = "Interface\\TargetingFrame\\UI-StatusBar"
 local backdrop_color = {0, 0, 0, 0.5}
 local border_color = {0, 0, 0, 1}
@@ -17,6 +17,7 @@ local hidetitle = false
 local addon_name, ns = ...
 local boss = LibStub("LibBossIDs-1.0")
 local dataobj = LibStub:GetLibrary('LibDataBroker-1.1'):NewDataObject('Dps', {type = "data source", text = 'DPS: ', icon = "", iconCoords = {0.065, 0.935, 0.065, 0.935}})
+local band = bit.band
 local bossname, mobname = nil, nil
 local units, bar, barguids, owners = {}, {}, {}, {}
 local current, display, fights, udata = {}, {}, {}, {}
@@ -201,8 +202,7 @@ end
 local SortMethod = function(a, b)
 	return display[b][sMode] < display[a][sMode]
 end
-local first = 1
-local last = 1
+
 local UpdateBars = function()
 	table.sort(barguids, SortMethod)
 	local color, cur, max
@@ -213,7 +213,7 @@ local UpdateBars = function()
 		if cur[sMode] == 0 then break end
 		if not bar[i] then 
 			bar[i] = CreateBar()
-			bar[i]:SetPoint("TOPLEFT", MainFrame, "TOPLEFT", 0, -(barheight + spacing) * (i-1))
+			bar[i]:SetPoint("TOP", 0, -(barheight + spacing) * (i-1))
 		end
 		bar[i]:SetValue(100 * cur[sMode] / max[sMode])
 		color = RAID_CLASS_COLORS[cur.class]
@@ -237,7 +237,7 @@ local ResetDisplay = function(fight)
 	for guid, v in pairs(display) do
 		tinsert(barguids, guid)
 	end
-	--MainFrame:SetVerticalScroll(0)
+	offset = 0
 	UpdateBars()
 end
 
@@ -416,7 +416,7 @@ end
 local OnEvent = function(self, event, ...)
 	if event == "COMBAT_LOG_EVENT_UNFILTERED" then
 		local timestamp, eventType, sourceGUID, sourceName, sourceFlags, destGUID, destName, destFlags = select(1, ...)
-		if not bit.band(sourceFlags, filter) then return end
+		if band(sourceFlags, filter) == 0 then return end
 		if eventType=="SWING_DAMAGE" or eventType=="RANGE_DAMAGE" or eventType=="SPELL_DAMAGE" or eventType=="SPELL_PERIODIC_DAMAGE" then
 			local ammount = select(eventType=="SWING_DAMAGE" and 9 or 12, ...)
 			if IsFriendlyUnit(sourceGUID) and not IsFriendlyUnit(destGUID) and combatstarted then
