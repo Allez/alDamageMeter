@@ -114,7 +114,7 @@ local tcopy = function(src)
 end
 
 local twipe = function(src)
-	for k, v in pairs(t) do
+	for k, v in pairs(src) do
 		if type(v) == "table" then
 			v = twipe(v)
 		end
