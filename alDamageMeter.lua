@@ -113,10 +113,11 @@ local tcopy = function(src)
 	return dest
 end
 
-local twipe = function(src)
+local twipe
+twipe = function(src)
 	for k, v in pairs(src) do
 		if type(v) == "table" then
-			v = twipe(v)
+			twipe(v)
 		end
 		src[k] = nil
 	end
