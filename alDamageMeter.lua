@@ -113,17 +113,6 @@ local tcopy = function(src)
 	return dest
 end
 
-local twipe
-twipe = function(src)
-	for k, v in pairs(src) do
-		if type(v) == "table" then
-			twipe(v)
-		end
-		src[k] = nil
-	end
-	return nil
-end
-
 local perSecond = function(cdata)
 	return cdata[sMode] / cdata.combatTime
 end
@@ -244,7 +233,7 @@ local ResetDisplay = function(fight)
 		v:Hide()
 	end
 	display = fight
-	twipe(barguids)
+	wipe(barguids)
 	for guid, v in pairs(display) do
 		tinsert(barguids, guid)
 	end
@@ -254,8 +243,8 @@ end
 
 local Clean = function()
 	numfights = 0
-	twipe(current)
-	twipe(fights)
+	wipe(current)
+	wipe(fights)
 	ResetDisplay(current)
 end
 
@@ -276,25 +265,25 @@ local CreateMenu = function(self, level)
 		info.text = "Menu"
 		info.notCheckable = 1
 		UIDropDownMenu_AddButton(info, level)
-		twipe(info)
+		wipe(info)
 		info.text = "Mode"
 		info.hasArrow = 1
 		info.value = "Mode"
 		info.notCheckable = 1
 		UIDropDownMenu_AddButton(info, level)
-		twipe(info)
+		wipe(info)
 		info.text = "Report to"
 		info.hasArrow = 1
 		info.value = "Report"
 		info.notCheckable = 1
 		UIDropDownMenu_AddButton(info, level)
-		twipe(info)
+		wipe(info)
 		info.text = "Fight"
 		info.hasArrow = 1
 		info.value = "Fight"
 		info.notCheckable = 1
 		UIDropDownMenu_AddButton(info, level)
-		twipe(info)
+		wipe(info)
 		info.text = "Clean"
 		info.func = Clean
 		info.notCheckable = 1
@@ -302,7 +291,7 @@ local CreateMenu = function(self, level)
 	elseif level == 2 then
 		if UIDROPDOWNMENU_MENU_VALUE == "Mode" then
 			for i, v in pairs(displayMode) do
-				twipe(info)
+				wipe(info)
 				info.text = v
 				info.func = function() SetMode(v) end
 				info.notCheckable = 1
@@ -311,7 +300,7 @@ local CreateMenu = function(self, level)
 		end
 		if UIDROPDOWNMENU_MENU_VALUE == "Report" then
 			for i, v in pairs(reportList) do
-				twipe(info)
+				wipe(info)
 				info.text = v.text
 				info.func = v.func
 				info.notCheckable = 1
@@ -319,13 +308,13 @@ local CreateMenu = function(self, level)
 			end
 		end
 		if UIDROPDOWNMENU_MENU_VALUE == "Fight" then
-			twipe(info)
+			wipe(info)
 			info.text = "Current"
 			info.func = function() ResetDisplay(current) end
 			info.notCheckable = 1
 			UIDropDownMenu_AddButton(info, level)
 			for i, v in pairs(fights) do
-				twipe(info)
+				wipe(info)
 				info.text = v.name
 				info.func = function() ResetDisplay(v.data) end
 				info.notCheckable = 1
@@ -418,7 +407,7 @@ local OnMouseWheel = function(self, direction)
 end
 
 local StartCombat = function()
-	twipe(current)
+	wipe(current)
 	combatstarted = true
 	ResetDisplay(current)
 	MainFrame:SetScript('OnUpdate', OnUpdate)
@@ -505,7 +494,7 @@ local OnEvent = function(self, event, ...)
 			_G[addon_name.."ScrollFrameScrollBarScrollDownButton"]:EnableMouse(false)
 		end
 	elseif event == "RAID_ROSTER_UPDATE" or event == "PARTY_MEMBERS_CHANGED" or event == "PLAYER_ENTERING_WORLD" then
-		twipe(units)
+		wipe(units)
 		if GetNumRaidMembers() > 0 then
 			for i = 1, GetNumRaidMembers(), 1 do
 				CheckUnit("raid"..i)
@@ -542,7 +531,7 @@ SlashCmdList["alDamage"] = function(msg)
 		units[i] = {name = UnitName("player"), class = select(2, UnitClass("player")), unit = "1"}
 		Add(i, i*10000, "Damage")
 	end
-	twipe(units)
+	wipe(units)
 	CheckUnit("player")
 	display = current
 	UpdateBars()
