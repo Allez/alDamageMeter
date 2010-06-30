@@ -527,9 +527,8 @@ SlashCmdList["alDamage"] = function(msg)
 	for i = 1, 20 do
 		units[i] = {name = UnitName("player"), class = select(2, UnitClass("player")), unit = "1"}
 		Add(i, i*10000, "Damage")
+		units[i] = nil
 	end
-	wipe(units)
-	CheckUnit("player")
 	display = current
 	UpdateBars()
 end
