@@ -11,6 +11,7 @@ local texture = "Interface\\TargetingFrame\\UI-StatusBar"
 local backdrop_color = {0, 0, 0, 0.5}
 local border_color = {0, 0, 0, 1}
 local border_size = 1
+local font_size = 11
 local hidetitle = false
 -- Config end
 
@@ -20,7 +21,7 @@ local dataobj = LibStub:GetLibrary('LibDataBroker-1.1'):NewDataObject('Dps', {ty
 local band = bit.band
 local bossname, mobname = nil, nil
 local units, bar, barguids, owners = {}, {}, {}, {}
-local current, display, fights, udata = {}, {}, {}, {}
+local current, display, fights = {}, {}, {}
 local timer, num, offset = 0, 0, 0
 local MainFrame
 local combatstarted = false
@@ -172,10 +173,10 @@ local CreateBar = function()
 	newbar:SetMinMaxValues(0, 100)
 	newbar:SetWidth(width)
 	newbar:SetHeight(barheight)
-	newbar.left = CreateFS(newbar, 11)
+	newbar.left = CreateFS(newbar, font_size)
 	newbar.left:SetPoint("LEFT", 2, 0)
 	newbar.left:SetJustifyH("LEFT")
-	newbar.right = CreateFS(newbar, 11)
+	newbar.right = CreateFS(newbar, font_size)
 	newbar.right:SetPoint("RIGHT", -2, 0)
 	newbar.right:SetJustifyH("RIGHT")
 	return newbar
@@ -195,8 +196,7 @@ local Add = function(uGUID, ammount, mode, name)
 		current[uGUID] = newdata
 		tinsert(barguids, uGUID)
 	end
-	udata = current[uGUID]
-	udata[mode] = udata[mode] + ammount
+	current[uGUID][mode] = current[uGUID][mode] + ammount
 end
 
 local SortMethod = function(a, b)
@@ -485,7 +485,7 @@ local OnEvent = function(self, event, ...)
 			MainFrame:SetScript("OnMouseWheel", OnMouseWheel)
 			MainFrame:Show()
 			UIDropDownMenu_Initialize(menuFrame, CreateMenu, "MENU")
-			MainFrame.title = CreateFS(MainFrame, 11)
+			MainFrame.title = CreateFS(MainFrame, font_size)
 			MainFrame.title:SetPoint("BOTTOMLEFT", MainFrame, "TOPLEFT", 0, 1)
 			MainFrame.title:SetText(sMode)
 			if hidetitle then MainFrame.title:Hide() end
