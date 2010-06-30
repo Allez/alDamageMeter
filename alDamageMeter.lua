@@ -462,12 +462,13 @@ local OnEvent = function(self, event, ...)
 		local name = ...
 		if name == addon_name then
 			self:UnregisterEvent(event)
-			MainFrame = CreateFrame("ScrollFrame", addon_name.."ScrollFrame", UIParent, "UIPanelScrollFrameTemplate")
+			MainFrame = CreateFrame("Frame", addon_name.."Frame", UIParent)
 			MainFrame:SetPoint(anchor, UIParent, anchor, x, y)
 			MainFrame:SetSize(width, height)
 			MainFrame.bg = CreateBG(MainFrame)
 			MainFrame:SetMovable(true)
 			MainFrame:EnableMouse(true)
+			MainFrame:EnableMouseWheel(true)
 			MainFrame:SetScript("OnMouseDown", function(self, button)
 				if button == "LeftButton" and IsModifiedClick("SHIFT") then
 					self:StartMoving()
@@ -488,10 +489,6 @@ local OnEvent = function(self, event, ...)
 			MainFrame.title:SetPoint("BOTTOMLEFT", MainFrame, "TOPLEFT", 0, 1)
 			MainFrame.title:SetText(sMode)
 			if hidetitle then MainFrame.title:Hide() end
-			_G[addon_name.."ScrollFrameScrollBar"]:SetAlpha(0)
-			_G[addon_name.."ScrollFrameScrollBar"]:EnableMouse(false)
-			_G[addon_name.."ScrollFrameScrollBarScrollUpButton"]:EnableMouse(false)
-			_G[addon_name.."ScrollFrameScrollBarScrollDownButton"]:EnableMouse(false)
 		end
 	elseif event == "RAID_ROSTER_UPDATE" or event == "PARTY_MEMBERS_CHANGED" or event == "PLAYER_ENTERING_WORLD" then
 		wipe(units)
