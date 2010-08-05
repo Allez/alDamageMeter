@@ -118,7 +118,7 @@ local perSecond = function(cdata)
 	return cdata[sMode] / cdata.combatTime
 end
 
-local report = function(channel)
+local report = function(channel, cn)
 	local message = sMode..":"
 	if channel == "Chat" then
 		DEFAULT_CHAT_FRAME:AddMessage(message)
@@ -135,7 +135,7 @@ local report = function(channel)
 		if channel == "Chat" then
 			DEFAULT_CHAT_FRAME:AddMessage(message)
 		else
-			SendChatMessage(message, channel)
+			SendChatMessage(message, channel, nil, cn)
 		end
 	end
 end
@@ -164,6 +164,14 @@ local reportList = {
 	{
 		text = "Guild", 
 		func = function() report("GUILD") end,
+	},
+	{
+		text = "Target", 
+		func = function() 
+			if UnitExists("target") and UnitIsPlayer("target") then
+				report("WHISPER", UnitName("target"))
+			end
+		end,
 	},
 }
 
