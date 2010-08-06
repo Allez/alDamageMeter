@@ -1,7 +1,7 @@
 -- Config start
 local anchor = "TOPLEFT"
 local x, y = 12, -12
-local barheight = 15
+local barheight = 14
 local spacing = 1
 local maxbars = 8
 local width, height = 125, maxbars*(barheight+spacing)-spacing
@@ -123,7 +123,7 @@ local report = function(channel, cn)
 	if channel == "Chat" then
 		DEFAULT_CHAT_FRAME:AddMessage(message)
 	else
-		SendChatMessage(message, channel)
+		SendChatMessage(message, channel, nil, cn)
 	end
 	for i, v in pairs(barguids) do
 		if i > reportstrings then return end
@@ -139,6 +139,15 @@ local report = function(channel, cn)
 		end
 	end
 end
+
+StaticPopupDialogs[addon_name.."ReportDialog"] = {
+	text = "", 
+	button1 = ACCEPT, 
+	button2 = CANCEL,
+	hasEditBox = 1,
+	timeout = 30, 
+	hideOnEscape = 1, 
+}
 
 local reportList = {
 	{
@@ -171,6 +180,24 @@ local reportList = {
 			if UnitExists("target") and UnitIsPlayer("target") then
 				report("WHISPER", UnitName("target"))
 			end
+		end,
+	},
+	{
+		text = "Player..", 
+		func = function() 
+			StaticPopupDialogs[addon_name.."ReportDialog"].OnAccept = 	function()
+				report("WHISPER", _G[this:GetParent():GetName().."EditBox"]:GetText())
+			end
+			StaticPopup_Show(addon_name.."ReportDialog")
+		end,
+	},
+	{
+		text = "Channel..", 
+		func = function() 
+			StaticPopupDialogs[addon_name.."ReportDialog"].OnAccept = 	function()
+				report("CHANNEL", _G[this:GetParent():GetName().."EditBox"]:GetText())
+			end
+			StaticPopup_Show(addon_name.."ReportDialog")
 		end,
 	},
 }

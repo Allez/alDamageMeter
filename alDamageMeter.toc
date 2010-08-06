@@ -1,6 +1,7 @@
 ## Interface: 30300
 ## Author: Allez
 ## Title: alDamageMeter
+## Version: 30300.1
 ## Notes: Damage meter
 
 embeds.xml
