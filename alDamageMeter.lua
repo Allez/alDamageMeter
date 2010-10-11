@@ -11,7 +11,8 @@ local texture = "Interface\\TargetingFrame\\UI-StatusBar"
 local backdrop_color = {0, 0, 0, 0.5}
 local border_color = {0, 0, 0, 1}
 local border_size = 1
-local font_size = 11
+local font = 'Fonts\\VisitorR.TTF'
+local font_size = 10
 local hidetitle = false
 -- Config end
 
@@ -91,7 +92,9 @@ end
 
 local CreateFS = function(frame, fsize, fstyle)
 	local fstring = frame:CreateFontString(nil, 'OVERLAY', 'GameFontHighlight')
-	fstring:SetFont(GameFontHighlight:GetFont(), fsize, fstyle)
+	fstring:SetFont(font, fsize, fstyle)
+	fstring:SetShadowColor(0, 0, 0, 1)
+	fstring:SetShadowOffset(0, 0)
 	return fstring
 end
 
@@ -208,11 +211,11 @@ local CreateBar = function()
 	newbar:SetMinMaxValues(0, 100)
 	newbar:SetWidth(width)
 	newbar:SetHeight(barheight)
-	newbar.left = CreateFS(newbar, font_size)
-	newbar.left:SetPoint("LEFT", 2, 0)
+	newbar.left = CreateFS(newbar, font_size, 'OUTLINEMONOCHROME')
+	newbar.left:SetPoint("LEFT", 2, 1)
 	newbar.left:SetJustifyH("LEFT")
-	newbar.right = CreateFS(newbar, font_size)
-	newbar.right:SetPoint("RIGHT", -2, 0)
+	newbar.right = CreateFS(newbar, font_size, 'OUTLINEMONOCHROME')
+	newbar.right:SetPoint("RIGHT", -2, 1)
 	newbar.right:SetJustifyH("RIGHT")
 	return newbar
 end
@@ -520,7 +523,7 @@ local OnEvent = function(self, event, ...)
 			MainFrame:SetScript("OnMouseWheel", OnMouseWheel)
 			MainFrame:Show()
 			UIDropDownMenu_Initialize(menuFrame, CreateMenu, "MENU")
-			MainFrame.title = CreateFS(MainFrame, font_size)
+			MainFrame.title = CreateFS(MainFrame, font_size, 'OUTLINEMONOCHROME')
 			MainFrame.title:SetPoint("BOTTOMLEFT", MainFrame, "TOPLEFT", 0, 1)
 			MainFrame.title:SetText(sMode)
 			if hidetitle then MainFrame.title:Hide() end

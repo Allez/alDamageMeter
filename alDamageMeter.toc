@@ -1,6 +1,6 @@
 ## Interface: 30300
 ## Author: Allez
-## Title: alDamageMeter
+## Title: |cff777777al|rDamageMeter
 ## Version: 30300.1
 ## Notes: Damage meter
 
