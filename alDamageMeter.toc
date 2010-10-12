@@ -1,7 +1,7 @@
-## Interface: 30300
+## Interface: 40000
 ## Author: Allez
 ## Title: |cff777777al|rDamageMeter
-## Version: 30300.1
+## Version: 40000.1
 ## Notes: Damage meter
 
 embeds.xml
