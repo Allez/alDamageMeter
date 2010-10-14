@@ -212,10 +212,10 @@ local CreateBar = function()
 	newbar:SetWidth(width)
 	newbar:SetHeight(barheight)
 	newbar.left = CreateFS(newbar, font_size, 'OUTLINEMONOCHROME')
-	newbar.left:SetPoint("LEFT", 2, 1)
+	newbar.left:SetPoint("LEFT", 2, 0)
 	newbar.left:SetJustifyH("LEFT")
 	newbar.right = CreateFS(newbar, font_size, 'OUTLINEMONOCHROME')
-	newbar.right:SetPoint("RIGHT", -2, 1)
+	newbar.right:SetPoint("RIGHT", -2, 0)
 	newbar.right:SetJustifyH("RIGHT")
 	return newbar
 end
@@ -524,7 +524,7 @@ local OnEvent = function(self, event, ...)
 			MainFrame:Show()
 			UIDropDownMenu_Initialize(menuFrame, CreateMenu, "MENU")
 			MainFrame.title = CreateFS(MainFrame, font_size, 'OUTLINEMONOCHROME')
-			MainFrame.title:SetPoint("BOTTOMLEFT", MainFrame, "TOPLEFT", 0, 1)
+			MainFrame.title:SetPoint("BOTTOMLEFT", MainFrame, "TOPLEFT", 0, 0)
 			MainFrame.title:SetText(sMode)
 			if hidetitle then MainFrame.title:Hide() end
 		end
