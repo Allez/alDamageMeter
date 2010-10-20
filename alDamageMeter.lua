@@ -33,12 +33,12 @@ local backdrop = {
 	insets = {top = 0, left = 0, bottom = 0, right = 0},
 }
 local displayMode = {
-	'Damage',
-	'Healing',
-	'Dispels',
-	'Interrupts',
+	DAMAGE,
+	SHOW_COMBAT_HEALING,
+	DISPELS,
+	INTERRUPTS,
 }
-local sMode = 'Damage'
+local sMode = DAMAGE
 
 local menuFrame = CreateFrame("Frame", "alDamageMeterMenu", UIParent, "UIDropDownMenuTemplate")
 
@@ -130,7 +130,7 @@ local report = function(channel, cn)
 	end
 	for i, v in pairs(barguids) do
 		if i > reportstrings then return end
-		if sMode == "Damage" or sMode == "Healing" then
+		if sMode == DAMAGE or sMode == SHOW_COMBAT_HEALING then
 			message = string.format("%2d. %s    %s (%.0f)", i, display[v].name, truncate(display[v][sMode]), perSecond(display[v]))
 		else
 			message = string.format("%2d. %s    %s", i, display[v].name, truncate(display[v][sMode]))
@@ -154,31 +154,31 @@ StaticPopupDialogs[addon_name.."ReportDialog"] = {
 
 local reportList = {
 	{
-		text = "Chat", 
+		text = CHAT_LABEL, 
 		func = function() report("Chat") end,
 	},
 	{
-		text = "Say", 
+		text = SAY, 
 		func = function() report("SAY") end,
 	},
 	{
-		text = "Party", 
+		text = PARTY, 
 		func = function() report("PARTY") end,
 	},
 	{
-		text = "Raid", 
+		text = RAID, 
 		func = function() report("RAID") end,
 	},
 	{
-		text = "Officer", 
+		text = OFFICER, 
 		func = function() report("OFFICER") end,
 	},
 	{
-		text = "Guild", 
+		text = GUILD, 
 		func = function() report("GUILD") end,
 	},
 	{
-		text = "Target", 
+		text = TARGET, 
 		func = function() 
 			if UnitExists("target") and UnitIsPlayer("target") then
 				report("WHISPER", UnitName("target"))
@@ -186,7 +186,7 @@ local reportList = {
 		end,
 	},
 	{
-		text = "Player..", 
+		text = PLAYER.."..", 
 		func = function() 
 			StaticPopupDialogs[addon_name.."ReportDialog"].OnAccept = 	function(self)
 				report("WHISPER", _G[self:GetName().."EditBox"]:GetText())
@@ -195,7 +195,7 @@ local reportList = {
 		end,
 	},
 	{
-		text = "Channel..", 
+		text = CHANNEL.."..", 
 		func = function() 
 			StaticPopupDialogs[addon_name.."ReportDialog"].OnAccept = 	function(self)
 				report("CHANNEL", _G[self:GetName().."EditBox"]:GetText())
@@ -256,7 +256,7 @@ local UpdateBars = function()
 		bar[i]:SetValue(100 * cur[sMode] / max[sMode])
 		color = RAID_CLASS_COLORS[cur.class]
 		bar[i]:SetStatusBarColor(color.r, color.g, color.b)
-		if sMode == "Damage" or sMode == "Healing" then
+		if sMode == DAMAGE or sMode == SHOW_COMBAT_HEALING then
 			bar[i].right:SetFormattedText("%s (%.0f)", truncate(cur[sMode]), perSecond(cur))
 		else
 			bar[i].right:SetFormattedText("%s", truncate(cur[sMode]))
@@ -300,29 +300,29 @@ local CreateMenu = function(self, level)
 	local info = {}
 	if level == 1 then
 		info.isTitle = 1
-		info.text = "Menu"
+		info.text = GAMEOPTIONS_MENU
 		info.notCheckable = 1
 		UIDropDownMenu_AddButton(info, level)
 		wipe(info)
-		info.text = "Mode"
+		info.text = MODE
 		info.hasArrow = 1
 		info.value = "Mode"
 		info.notCheckable = 1
 		UIDropDownMenu_AddButton(info, level)
 		wipe(info)
-		info.text = "Report to"
+		info.text = CHAT_ANNOUNCE
 		info.hasArrow = 1
 		info.value = "Report"
 		info.notCheckable = 1
 		UIDropDownMenu_AddButton(info, level)
 		wipe(info)
-		info.text = "Fight"
+		info.text = COMBAT
 		info.hasArrow = 1
 		info.value = "Fight"
 		info.notCheckable = 1
 		UIDropDownMenu_AddButton(info, level)
 		wipe(info)
-		info.text = "Clean"
+		info.text = RESET
 		info.func = Clean
 		info.notCheckable = 1
 		UIDropDownMenu_AddButton(info, level)
@@ -414,7 +414,7 @@ local OnUpdate = function(self, elapsed)
 				v.combatTime = v.combatTime + timer
 			end
 			if i == UnitGUID("player") then
-				dataobj.text = string.format("DPS: %.0f", v["Damage"] / v.combatTime)
+				dataobj.text = string.format("DPS: %.0f", v[DAMAGE] / v.combatTime)
 			end
 		end
 		UpdateBars()
@@ -480,18 +480,18 @@ local OnEvent = function(self, event, ...)
 				over = over or 0
 				if ammount and ammount > 0 then
 					sourceGUID = owners[sourceGUID] or sourceGUID
-					Add(sourceGUID, ammount - over, "Healing")
+					Add(sourceGUID, ammount - over, SHOW_COMBAT_HEALING)
 				end
 			end
 		elseif eventType=="SPELL_DISPEL" then
 			if IsFriendlyUnit(sourceGUID) and IsFriendlyUnit(destGUID) and combatstarted then
 				sourceGUID = owners[sourceGUID] or sourceGUID
-				Add(sourceGUID, 1, "Dispels")
+				Add(sourceGUID, 1, DISPELS)
 			end
 		elseif eventType=="SPELL_INTERRUPT" then
 			if IsFriendlyUnit(sourceGUID) and not IsFriendlyUnit(destGUID) and combatstarted then
 				sourceGUID = owners[sourceGUID] or sourceGUID
-				Add(sourceGUID, 1, "Interrupts")
+				Add(sourceGUID, 1, INTERRUPTS)
 			end
 		else
 			return
@@ -564,7 +564,7 @@ addon:RegisterEvent("UNIT_PET")
 SlashCmdList["alDamage"] = function(msg)
 	for i = 1, 20 do
 		units[i] = {name = UnitName("player"), class = select(2, UnitClass("player")), unit = "1"}
-		Add(i, i*10000, "Damage")
+		Add(i, i*10000, DAMAGE)
 		units[i] = nil
 	end
 	display = current
