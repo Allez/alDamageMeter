@@ -188,8 +188,8 @@ local reportList = {
 	{
 		text = "Player..", 
 		func = function() 
-			StaticPopupDialogs[addon_name.."ReportDialog"].OnAccept = 	function()
-				report("WHISPER", _G[this:GetParent():GetName().."EditBox"]:GetText())
+			StaticPopupDialogs[addon_name.."ReportDialog"].OnAccept = 	function(self)
+				report("WHISPER", _G[self:GetName().."EditBox"]:GetText())
 			end
 			StaticPopup_Show(addon_name.."ReportDialog")
 		end,
@@ -197,8 +197,8 @@ local reportList = {
 	{
 		text = "Channel..", 
 		func = function() 
-			StaticPopupDialogs[addon_name.."ReportDialog"].OnAccept = 	function()
-				report("CHANNEL", _G[this:GetParent():GetName().."EditBox"]:GetText())
+			StaticPopupDialogs[addon_name.."ReportDialog"].OnAccept = 	function(self)
+				report("CHANNEL", _G[self:GetName().."EditBox"]:GetText())
 			end
 			StaticPopup_Show(addon_name.."ReportDialog")
 		end,
