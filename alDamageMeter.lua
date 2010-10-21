@@ -460,7 +460,7 @@ local OnEvent = function(self, event, ...)
 			if IsFriendlyUnit(sourceGUID) and not IsFriendlyUnit(destGUID) and combatstarted then
 				if ammount and ammount > 0 then
 					sourceGUID = owners[sourceGUID] or sourceGUID
-					Add(sourceGUID, ammount, 'Damage', sourceName)
+					Add(sourceGUID, ammount, DAMAGE, sourceName)
 					if not bossname and boss.BossIDs[tonumber(destGUID:sub(9, 12), 16)] then
 						bossname = destName
 					elseif not mobname then
