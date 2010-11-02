@@ -618,6 +618,18 @@ local StartCombat = function()
 	MainFrame:SetScript('OnUpdate', OnUpdate)
 end
 
+local FindShielder = function(destGUID)
+	local found_shielder = nil
+	for shield, spells in pairs(shields[destGUID]) do
+		for shielder, ts in pairs(spells) do
+			if ts - timestamp > 0 then
+				found_shielder = shielder
+			end
+		end
+	end
+	return found_shielder
+end
+
 local OnEvent = function(self, event, ...)
 	if event == "COMBAT_LOG_EVENT_UNFILTERED" then
 		local timestamp, eventType, sourceGUID, sourceName, sourceFlags, destGUID, destName, destFlags = select(1, ...)
@@ -636,31 +648,17 @@ local OnEvent = function(self, event, ...)
 				end
 			end
 			if IsFriendlyUnit(destGUID) then
-				local found_shielder = nil
-				for shield, spells in pairs(shields[destGUID]) do
-					for shielder, ts in pairs(spells) do
-						if ts - timestamp > 0 then
-							found_shielder = shielder
-						end
-					end
-				end
-				if found_shielder and absorbed and absorbed > 0 then
+				local shielder = FindShielder(destGUID)
+				if shielder and absorbed and absorbed > 0 then
 					Add(found_shielder, absorbed, ABSORB)
 				end
 			end
 		elseif eventType=="SWING_MISSED" or eventType=="RANGE_MISSED" or eventType=="SPELL_MISSED" or eventType=="SPELL_PERIODIC_MISSED" then
 			local misstype, amount = select(eventType=="SWING_MISSED" and 9 or 12, ...)
 			if misstype == "ABSORB" and IsFriendlyUnit(destGUID) then
-				local found_shielder = nil
-				for shield, spells in pairs(shields[destGUID]) do
-					for shielder, ts in pairs(spells) do
-						if ts - timestamp > 0 then
-							found_shielder = shielder
-						end
-					end
-				end
-				if found_shielder and amount and amount > 0 then
-					Add(found_shielder, absorbed, ABSORB)
+				local shielder = FindShielder(destGUID)
+				if shielder and amount and amount > 0 then
+					Add(found_shielder, amount, ABSORB)
 				end
 			end
 		elseif eventType=="SPELL_SUMMON" then
