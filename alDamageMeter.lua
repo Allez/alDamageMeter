@@ -32,13 +32,6 @@ local backdrop = {
 	edgeFile = [=[Interface\ChatFrame\ChatFrameBackground]=], edgeSize = border_size,
 	insets = {top = 0, left = 0, bottom = 0, right = 0},
 }
-local absorbAuras = {
-	[17]    = true, -- Power Word: Shield
-	[47753] = true, -- Divine Aegis
-	[86273] = true, -- Illuminated Healing
-	[58597] = true, -- Sacred Shield
-	[88063] = true, -- Guarded by the Light
-}
 local displayMode = {
 	DAMAGE,
 	SHOW_COMBAT_HEALING,
@@ -58,153 +51,23 @@ local AbsorbSpellDuration = {
 	[62606] = 10, -- Savage Defense proc. (Druid) Tooltip of the original spell doesn't clearly state that this is an absorb, but the buff does.
 	-- Mage
 	[11426] = 60, -- Ice Barrier (Mage) Rank 1
-	[13031] = 60,
-	[13032] = 60,
-	[13033] = 60,
-	[27134] = 60,
-	[33405] = 60,
-	[43038] = 60,
-	[43039] = 60, -- Rank 8
 	[6143] = 30, -- Frost Ward (Mage) Rank 1
-	[8461] = 30, 
-	[8462] = 30,  
-	[10177] = 30,  
-	[28609] = 30,
-	[32796] = 30,
-	[43012] = 30, -- Rank 7
 	[1463] = 60, --  Mana shield (Mage) Rank 1
-	[8494] = 60,
-	[8495] = 60,
-	[10191] = 60,
-	[10192] = 60,
-	[10193] = 60,
-	[27131] = 60,
-	[43019] = 60,
-	[43020] = 60, -- Rank 9
 	[543] = 30 , -- Fire Ward (Mage) Rank 1
-	[8457] = 30,
-	[8458] = 30,
-	[10223] = 30,
-	[10225] = 30,
-	[27128] = 30,
-	[43010] = 30, -- Rank 7
 	-- Paladin
 	[58597] = 6, -- Sacred Shield (Paladin) proc (Fixed, thanks to Julith)
+	[86273] = 6,	-- Illuminated Healing, Pala Mastery
 	-- Priest
 	[17] = 30, -- Power Word: Shield (Priest) Rank 1
-	[592] = 30,
-	[600] = 30,
-	[3747] = 30,
-	[6065] = 30,
-	[6066] = 30,
-	[10898] = 30,
-	[10899] = 30,
-	[10900] = 30,
-	[10901] = 30,
-	[25217] = 30,
-	[25218] = 30,
-	[48065] = 30,
-	[48066] = 30, -- Rank 14
-	[47509] = 12, -- Divine Aegis (Priest) Rank 1
-	[47511] = 12,
-	[47515] = 12, -- Divine Aegis (Priest) Rank 3 (Some of these are not actual buff spellIDs)
 	[47753] = 12, -- Divine Aegis (Priest) Rank 1
-	[54704] = 12, -- Divine Aegis (Priest) Rank 1
 	[47788] = 10, -- Guardian Spirit  (Priest) (50 nominal absorb, this may not show in the CL)
 	-- Warlock
 	[7812] = 30, -- Sacrifice (warlock) Rank 1
-	[19438] = 30,
-	[19440] = 30,
-	[19441] = 30,
-	[19442] = 30,
-	[19443] = 30,
-	[27273] = 30,
-	[47985] = 30,
-	[47986] = 30, -- rank 9
 	[6229] = 30, -- Shadow Ward (warlock) Rank 1
-	[11739] = 30,
-	[11740] = 30,
-	[28610] = 30,
-	[47890] = 30,
-	[47891] = 30, -- Rank 6
-	-- Consumables
-	[29674] = 86400, -- Lesser Ward of Shielding
-	[29719] = 86400, -- Greater Ward of Shielding (these have infinite duration, set for a day here :P)
-	[29701] = 86400,
-	[28538] = 120, -- Major Holy Protection Potion
-	[28537] = 120, -- Major Shadow
-	[28536] = 120, --  Major Arcane
-	[28513] = 120, -- Major Nature
-	[28512] = 120, -- Major Frost
-	[28511] = 120, -- Major Fire
-	[7233] = 120, -- Fire
-	[7239] = 120, -- Frost
-	[7242] = 120, -- Shadow Protection Potion
-	[7245] = 120, -- Holy
-	[6052] = 120, -- Nature Protection Potion
-	[53915] = 120, -- Mighty Shadow Protection Potion
-	[53914] = 120, -- Mighty Nature Protection Potion
-	[53913] = 120, -- Mighty Frost Protection Potion
-	[53911] = 120, -- Mighty Fire
-	[53910] = 120, -- Mighty Arcane
-	[17548] = 120, --  Greater Shadow
-	[17546] = 120, -- Greater Nature
-	[17545] = 120, -- Greater Holy
-	[17544] = 120, -- Greater Frost
-	[17543] = 120, -- Greater Fire
-	[17549] = 120, -- Greater Arcane
-	[28527] = 15, -- Fel Blossom
-	[29432] = 3600, -- Frozen Rune usage (Naxx classic)
-	-- Item usage
-	[36481] = 4, -- Arcane Barrier (TK Kael'Thas) Shield
-	[57350] = 6, -- Darkmoon Card: Illusion
-	[17252] = 30, -- Mark of the Dragon Lord (LBRS epic ring) usage
-	[25750] = 15, -- Defiler's Talisman/Talisman of Arathor Rank 1
-	[25747] = 15,
-	[25746] = 15,
-	[23991] = 15,
-	[31000] = 300, -- Pendant of Shadow's End Usage
-	[30997] = 300, -- Pendant of Frozen Flame Usage
-	[31002] = 300, -- Pendant of the Null Rune
-	[30999] = 300, -- Pendant of Withering
-	[30994] = 300, -- Pendant of Thawing
-	[31000] = 300, -- 
-	[23506]= 20, -- Arena Grand Master Usage (Aura of Protection)
-	[12561] = 60, -- Goblin Construction Helmet usage
-	[31771] = 20, -- Runed Fungalcap usage
-	[21956] = 10, -- Mark of Resolution usage
-	[29506] = 20, -- The Burrower's Shell
-	[4057] = 60, -- Flame Deflector
-	[4077] = 60, -- Ice Deflector
-	[39228] = 20, -- Argussian Compass (may not be an actual absorb)
 	-- Item procs
-	[27779] = 30, -- Divine Protection - Priest dungeon set 1/2  Proc
-	[11657] = 20, -- Jang'thraze (Zul Farrak) proc
-	[10368] = 15, -- Uther's Strength proc
-	[37515] = 15, -- Warbringer Armor Proc
-	[42137] = 86400, -- Greater Rune of Warding Proc
-	[26467] = 30, -- Scarab Brooch proc
-	[26470] = 8, -- Scarab Brooch proc (actual)
-	[27539] = 6, -- Thick Obsidian Breatplate proc
-	[28810] = 30, -- Faith Set Proc Armor of Faith
-	[54808] = 12, -- Noise Machine proc Sonic Shield 
-	[55019] = 12, -- Sonic Shield (one of these too ought to be wrong)
 	[64411] = 15, -- Blessing of the Ancient (Val'anyr Hammer of Ancient Kings equip effect)
 	[64413] = 8, -- Val'anyr, Hammer of Ancient Kings proc Protection of Ancient Kings
-	-- Misc
-	[40322] = 30, -- Teron's Vengeful Spirit Ghost - Spirit Shield
-	-- Boss abilities
-	[65874] = 15, -- Twin Val'kyr's Shield of Darkness 175000
-	[67257] = 15, -- 300000
-	[67256] = 15, -- 700000
-	[67258] = 15, -- 1200000
-	[65858] = 15, -- Twin Val'kyr's Shield of Lights 175000
-	[67260] = 15, -- 300000
-	[67259] = 15, -- 700000
-	[67261] = 15, -- 1200000
-	[86273] = 6,	-- Illuminated Healing, Pala Mastery
 }
-
 local shields = {}
 
 local menuFrame = CreateFrame("Frame", "alDamageMeterMenu", UIParent, "UIDropDownMenuTemplate")
