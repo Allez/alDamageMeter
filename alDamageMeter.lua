@@ -7,14 +7,35 @@ local maxbars = 8
 local width, height = 125, maxbars*(barheight+spacing)-spacing
 local maxfights = 10
 local reportstrings = 10
-local texture = "Interface\\TargetingFrame\\UI-StatusBar"
+local texture = "Interface\\Addons\\alDamageMeter\\media\\UI-StatusBar"
 local backdrop_color = {0, 0, 0, 0.5}
 local border_color = {0, 0, 0, 1}
 local border_size = 1
-local font = 'Fonts\\VisitorR.TTF'
+local font = "Interface\\Addons\\alDamageMeter\\media\\VisitorR.TTF"
+local font_style = "OUTLINEMONOCHROME"
 local font_size = 10
 local hidetitle = false
 -- Config end
+
+local config = {
+	["Texture"] = texture,
+	["Width"] = width,
+	["Bar height"] = barheight,
+	["Visible bars"] = maxbars,
+	["Saved fights"] = maxfights,
+	["Report lines"] = reportstrings,
+	["Hide title"] = hidetitle,
+	["Font"] = font,
+	["Font size"] = font_size,
+	["Font style"] = font_style,
+	["Anchor point"] = anchor,
+	["X offset"] = x,
+	["Y offset"] = y,
+	["Bar spacing"] = spacing,
+}
+if UIConfig then
+	UIConfig["Damage Meter"] = config
+end
 
 local addon_name, ns = ...
 local boss = LibStub("LibBossIDs-1.0")
@@ -50,20 +71,20 @@ local AbsorbSpellDuration = {
 	-- Druid
 	[62606] = 10, -- Savage Defense proc. (Druid) Tooltip of the original spell doesn't clearly state that this is an absorb, but the buff does.
 	-- Mage
-	[11426] = 60, -- Ice Barrier (Mage) Rank 1
-	[6143] = 30, -- Frost Ward (Mage) Rank 1
-	[1463] = 60, --  Mana shield (Mage) Rank 1
-	[543] = 30 , -- Fire Ward (Mage) Rank 1
+	[11426] = 60, -- Ice Barrier
+	[6143] = 30, -- Frost Ward
+	[1463] = 60, --  Mana shield
+	[543] = 30 , -- Fire Ward
 	-- Paladin
 	[58597] = 6, -- Sacred Shield (Paladin) proc (Fixed, thanks to Julith)
 	[86273] = 6,	-- Illuminated Healing, Pala Mastery
 	-- Priest
-	[17] = 30, -- Power Word: Shield (Priest) Rank 1
-	[47753] = 12, -- Divine Aegis (Priest) Rank 1
+	[17] = 30, -- Power Word: Shield
+	[47753] = 12, -- Divine Aegis
 	[47788] = 10, -- Guardian Spirit  (Priest) (50 nominal absorb, this may not show in the CL)
 	-- Warlock
-	[7812] = 30, -- Sacrifice (warlock) Rank 1
-	[6229] = 30, -- Shadow Ward (warlock) Rank 1
+	[7812] = 30, -- Sacrifice
+	[6229] = 30, -- Shadow Ward
 	-- Item procs
 	[64411] = 15, -- Blessing of the Ancient (Val'anyr Hammer of Ancient Kings equip effect)
 	[64413] = 8, -- Val'anyr, Hammer of Ancient Kings proc Protection of Ancient Kings
@@ -120,9 +141,9 @@ local IsUnitInCombat = function(uGUID)
 	return false
 end
 
-local CreateFS = function(frame, fsize, fstyle)
-	local fstring = frame:CreateFontString(nil, 'OVERLAY', 'GameFontHighlight')
-	fstring:SetFont(font, fsize, fstyle)
+local CreateFS = function(frame)
+	local fstring = frame:CreateFontString(nil, 'OVERLAY')
+	fstring:SetFont(config["Font"], config["Font size"], config["Font style"])
 	fstring:SetShadowColor(0, 0, 0, 1)
 	fstring:SetShadowOffset(0, 0)
 	return fstring
@@ -130,9 +151,9 @@ end
 
 local CreateBG = function(parent)
 	local bg = CreateFrame("Frame", nil, parent)
-	bg:SetPoint("TOPLEFT", parent, "TOPLEFT", -border_size, border_size)
-	bg:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", border_size, -border_size)
-	bg:SetFrameStrata("LOW")
+	bg:SetPoint("TOPLEFT", -border_size, border_size)
+	bg:SetPoint("BOTTOMRIGHT", border_size, -border_size)
+	bg:SetFrameLevel(parent:GetFrameLevel() - 1)
 	bg:SetBackdrop(backdrop)
 	bg:SetBackdropColor(unpack(backdrop_color))
 	bg:SetBackdropBorderColor(unpack(border_color))
@@ -159,7 +180,7 @@ local report = function(channel, cn)
 		SendChatMessage(message, channel, nil, cn)
 	end
 	for i, v in pairs(barguids) do
-		if i > reportstrings then return end
+		if i > config["Report lines"] then return end
 		if sMode == DAMAGE or sMode == SHOW_COMBAT_HEALING then
 			message = string.format("%2d. %s    %s (%.0f)", i, display[v].name, truncate(display[v][sMode]), perSecond(display[v]))
 		else
@@ -237,14 +258,14 @@ local reportList = {
 
 local CreateBar = function()
 	local newbar = CreateFrame("Statusbar", nil, MainFrame)
-	newbar:SetStatusBarTexture(texture)
+	newbar:SetStatusBarTexture(config["Texture"])
 	newbar:SetMinMaxValues(0, 100)
-	newbar:SetWidth(width)
-	newbar:SetHeight(barheight)
-	newbar.left = CreateFS(newbar, font_size, 'OUTLINEMONOCHROME')
+	newbar:SetWidth(config["Width"])
+	newbar:SetHeight(config["Bar height"])
+	newbar.left = CreateFS(newbar)
 	newbar.left:SetPoint("LEFT", 2, 0)
 	newbar.left:SetJustifyH("LEFT")
-	newbar.right = CreateFS(newbar, font_size, 'OUTLINEMONOCHROME')
+	newbar.right = CreateFS(newbar)
 	newbar.right:SetPoint("RIGHT", -2, 0)
 	newbar.right:SetJustifyH("RIGHT")
 	return newbar
@@ -277,11 +298,11 @@ local UpdateBars = function()
 	for i = 1, #barguids do
 		cur = display[barguids[i+offset]]
 		max = display[barguids[1]]
-		if i > maxbars or not cur then break end
+		if i > config["Visible bars"] or not cur then break end
 		if cur[sMode] == 0 then break end
 		if not bar[i] then 
 			bar[i] = CreateBar()
-			bar[i]:SetPoint("TOP", 0, -(barheight + spacing) * (i-1))
+			bar[i]:SetPoint("TOP", 0, -(config["Bar height"] + config["Bar spacing"]) * (i-1))
 		end
 		bar[i]:SetValue(100 * cur[sMode] / max[sMode])
 		color = RAID_CLASS_COLORS[cur.class]
@@ -397,7 +418,7 @@ local EndCombat = function()
 	combatstarted = false
 	local fname = bossname or mobname
 	if fname then
-		if #fights >= maxfights then
+		if #fights >= config["Saved fights"] then
 			tremove(fights, 1)
 		end
 		tinsert(fights, {name = fname, data = tcopy(current)})
@@ -481,7 +502,8 @@ local StartCombat = function()
 	MainFrame:SetScript('OnUpdate', OnUpdate)
 end
 
-local FindShielder = function(destGUID)
+local FindShielder = function(destGUID, timestamp)
+	if not shields[destGUID] then return end
 	local found_shielder = nil
 	for shield, spells in pairs(shields[destGUID]) do
 		for shielder, ts in pairs(spells) do
@@ -511,17 +533,17 @@ local OnEvent = function(self, event, ...)
 				end
 			end
 			if IsFriendlyUnit(destGUID) then
-				local shielder = FindShielder(destGUID)
+				local shielder = FindShielder(destGUID, timestamp)
 				if shielder and absorbed and absorbed > 0 then
-					Add(found_shielder, absorbed, ABSORB)
+					Add(shielder, absorbed, ABSORB)
 				end
 			end
 		elseif eventType=="SWING_MISSED" or eventType=="RANGE_MISSED" or eventType=="SPELL_MISSED" or eventType=="SPELL_PERIODIC_MISSED" then
 			local misstype, amount = select(eventType=="SWING_MISSED" and 9 or 12, ...)
 			if misstype == "ABSORB" and IsFriendlyUnit(destGUID) then
-				local shielder = FindShielder(destGUID)
+				local shielder = FindShielder(destGUID, timestamp)
 				if shielder and amount and amount > 0 then
-					Add(found_shielder, amount, ABSORB)
+					Add(shielder, amount, ABSORB)
 				end
 			end
 		elseif eventType=="SPELL_SUMMON" then
@@ -551,6 +573,7 @@ local OnEvent = function(self, event, ...)
 			end
 		elseif eventType=="SPELL_AURA_APPLIED" or eventType=="SPELL_AURA_REFRESH" then
 			local spellId = select(9, ...)
+			sourceGUID = owners[sourceGUID] or sourceGUID
 			if AbsorbSpellDuration[spellId] and IsFriendlyUnit(sourceGUID) and IsFriendlyUnit(destGUID) then
 				shields[destGUID] = shields[destGUID] or {}
 				shields[destGUID][spellId] = shields[destGUID][spellId] or {}
@@ -558,6 +581,7 @@ local OnEvent = function(self, event, ...)
 			end
 		elseif eventType=="SPELL_AURA_REMOVED" then
 			local spellId = select(9, ...)
+			sourceGUID = owners[sourceGUID] or sourceGUID
 			if AbsorbSpellDuration[spellId] and IsFriendlyUnit(destGUID) then
 				if shields[destGUID] and shields[destGUID][spellId] and shields[destGUID][spellId][destGUID] then
 					shields[destGUID][spellId][destGUID] = timestamp + 0.1
@@ -571,8 +595,8 @@ local OnEvent = function(self, event, ...)
 		if name == addon_name then
 			self:UnregisterEvent(event)
 			MainFrame = CreateFrame("Frame", addon_name.."Frame", UIParent)
-			MainFrame:SetPoint(anchor, UIParent, anchor, x, y)
-			MainFrame:SetSize(width, height)
+			MainFrame:SetPoint(config["Anchor point"], config["X offset"], config["Y offset"])
+			MainFrame:SetSize(config["Width"], height)
 			MainFrame.bg = CreateBG(MainFrame)
 			MainFrame:SetMovable(true)
 			MainFrame:EnableMouse(true)
@@ -593,10 +617,10 @@ local OnEvent = function(self, event, ...)
 			MainFrame:SetScript("OnMouseWheel", OnMouseWheel)
 			MainFrame:Show()
 			UIDropDownMenu_Initialize(menuFrame, CreateMenu, "MENU")
-			MainFrame.title = CreateFS(MainFrame, font_size, 'OUTLINEMONOCHROME')
+			MainFrame.title = CreateFS(MainFrame)
 			MainFrame.title:SetPoint("BOTTOMLEFT", MainFrame, "TOPLEFT", 0, 0)
 			MainFrame.title:SetText(sMode)
-			if hidetitle then MainFrame.title:Hide() end
+			if config["Hide title"] then MainFrame.title:Hide() end
 		end
 	elseif event == "RAID_ROSTER_UPDATE" or event == "PARTY_MEMBERS_CHANGED" or event == "PLAYER_ENTERING_WORLD" then
 		wipe(units)
