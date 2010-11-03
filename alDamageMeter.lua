@@ -7,13 +7,13 @@ local maxbars = 8
 local width, height = 125, maxbars*(barheight+spacing)-spacing
 local maxfights = 10
 local reportstrings = 10
-local texture = "Interface\\Addons\\alDamageMeter\\media\\UI-StatusBar"
+local texture = "Interface\\TargetingFrame\\UI-StatusBar"
 local backdrop_color = {0, 0, 0, 0.5}
 local border_color = {0, 0, 0, 1}
 local border_size = 1
-local font = "Interface\\Addons\\alDamageMeter\\media\\VisitorR.TTF"
-local font_style = "OUTLINEMONOCHROME"
+local font = 'Fonts\\VisitorR.TTF'
 local font_size = 10
+local font_style = "OUTLINEMONOCHROME" 
 local hidetitle = false
 -- Config end
 
@@ -28,9 +28,6 @@ local config = {
 	["Font"] = font,
 	["Font size"] = font_size,
 	["Font style"] = font_style,
-	["Anchor point"] = anchor,
-	["X offset"] = x,
-	["Y offset"] = y,
 	["Bar spacing"] = spacing,
 }
 if UIConfig then
@@ -595,7 +592,7 @@ local OnEvent = function(self, event, ...)
 		if name == addon_name then
 			self:UnregisterEvent(event)
 			MainFrame = CreateFrame("Frame", addon_name.."Frame", UIParent)
-			MainFrame:SetPoint(config["Anchor point"], config["X offset"], config["Y offset"])
+			MainFrame:SetPoint(anchor, x, y)
 			MainFrame:SetSize(config["Width"], height)
 			MainFrame.bg = CreateBG(MainFrame)
 			MainFrame:SetMovable(true)
@@ -664,4 +661,5 @@ SlashCmdList["alDamage"] = function(msg)
 	display = current
 	UpdateBars()
 end
-SLASH_alDamage1 = "/aldmg"
+SLASH_alDamage1 = "/aldmg" 
+
