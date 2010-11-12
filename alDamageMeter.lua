@@ -40,7 +40,7 @@ local dataobj = LibStub:GetLibrary('LibDataBroker-1.1'):NewDataObject('Dps', {ty
 local band = bit.band
 local bossname, mobname = nil, nil
 local units, bar, barguids, owners = {}, {}, {}, {}
-local current, display, fights = {}, {}, {}
+local current, total, display, fights = {}, {}, {}
 local timer, num, offset = 0, 0, 0
 local MainFrame
 local combatstarted = false
@@ -177,7 +177,7 @@ local report = function(channel, cn)
 		SendChatMessage(message, channel, nil, cn)
 	end
 	for i, v in pairs(barguids) do
-		if i > config["Report lines"] then return end
+		if i > config["Report lines"] or display[v][sMode] == 0 then return end
 		if sMode == DAMAGE or sMode == SHOW_COMBAT_HEALING then
 			message = string.format("%2d. %s    %s (%.0f)", i, display[v].name, truncate(display[v][sMode]), perSecond(display[v]))
 		else
@@ -268,21 +268,28 @@ local CreateBar = function()
 	return newbar
 end
 
+local CreateUnit = function(uGUID)
+	local unit = units[uGUID]
+	local newdata = {
+		name = unit.name,
+		class = unit.class,
+		combatTime = 1,
+	}
+	for _, v in pairs(displayMode) do
+		newdata[v] = 0
+	end
+	return newdata
+end
+
 local Add = function(uGUID, ammount, mode, name)
 	local unit = units[uGUID]
 	if not current[uGUID] then
-		local newdata = {
-			name = unit.name,
-			class = unit.class,
-			combatTime = 1,
-		}
-		for _, v in pairs(displayMode) do
-			newdata[v] = 0
-		end
-		current[uGUID] = newdata
+		current[uGUID] = CreateUnit(uGUID)
+		total[uGUID] = CreateUnit(uGUID)
 		tinsert(barguids, uGUID)
 	end
 	current[uGUID][mode] = current[uGUID][mode] + ammount
+	total[uGUID][mode] = total[uGUID][mode] + ammount
 end
 
 local SortMethod = function(a, b)
@@ -330,6 +337,7 @@ end
 local Clean = function()
 	numfights = 0
 	wipe(current)
+	wipe(total)
 	wipe(fights)
 	ResetDisplay(current)
 end
@@ -397,6 +405,11 @@ local CreateMenu = function(self, level)
 			wipe(info)
 			info.text = "Current"
 			info.func = function() ResetDisplay(current) end
+			info.notCheckable = 1
+			UIDropDownMenu_AddButton(info, level)
+			wipe(info)
+			info.text = "Total"
+			info.func = function() ResetDisplay(total) end
 			info.notCheckable = 1
 			UIDropDownMenu_AddButton(info, level)
 			for i, v in pairs(fights) do
