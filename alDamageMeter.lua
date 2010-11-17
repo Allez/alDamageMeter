@@ -40,7 +40,7 @@ local dataobj = LibStub:GetLibrary('LibDataBroker-1.1'):NewDataObject('Dps', {ty
 local band = bit.band
 local bossname, mobname = nil, nil
 local units, bar, barguids, owners = {}, {}, {}, {}
-local current, total, display, fights = {}, {}, {}
+local current, display, fights = {}, {}, {}
 local timer, num, offset = 0, 0, 0
 local MainFrame
 local combatstarted = false
@@ -268,7 +268,7 @@ local CreateBar = function()
 	return newbar
 end
 
-local CreateUnit = function(uGUID)
+local CreateUnitInfo = function(uGUID)
 	local unit = units[uGUID]
 	local newdata = {
 		name = unit.name,
@@ -282,14 +282,13 @@ local CreateUnit = function(uGUID)
 end
 
 local Add = function(uGUID, ammount, mode, name)
-	local unit = units[uGUID]
 	if not current[uGUID] then
-		current[uGUID] = CreateUnit(uGUID)
-		total[uGUID] = CreateUnit(uGUID)
+		current[uGUID] = CreateUnitInfo(uGUID)
+		--total[uGUID] = CreateUnit(uGUID)
 		tinsert(barguids, uGUID)
 	end
 	current[uGUID][mode] = current[uGUID][mode] + ammount
-	total[uGUID][mode] = total[uGUID][mode] + ammount
+	--total[uGUID][mode] = total[uGUID][mode] + ammount
 end
 
 local SortMethod = function(a, b)
@@ -337,7 +336,7 @@ end
 local Clean = function()
 	numfights = 0
 	wipe(current)
-	wipe(total)
+	--wipe(total)
 	wipe(fights)
 	ResetDisplay(current)
 end
@@ -407,11 +406,11 @@ local CreateMenu = function(self, level)
 			info.func = function() ResetDisplay(current) end
 			info.notCheckable = 1
 			UIDropDownMenu_AddButton(info, level)
-			wipe(info)
+			--[[wipe(info)
 			info.text = "Total"
 			info.func = function() ResetDisplay(total) end
 			info.notCheckable = 1
-			UIDropDownMenu_AddButton(info, level)
+			UIDropDownMenu_AddButton(info, level)]]
 			for i, v in pairs(fights) do
 				wipe(info)
 				info.text = v.name
