@@ -7,14 +7,16 @@ local maxbars = 8
 local width, height = 125, maxbars*(barheight+spacing)-spacing
 local maxfights = 10
 local reportstrings = 10
-local texture = "Interface\\TargetingFrame\\UI-StatusBar"
+local texture = "Interface\\Addons\\alDamageMeter\\media\\UI-StatusBar"
 local backdrop_color = {0, 0, 0, 0.5}
 local border_color = {0, 0, 0, 1}
 local border_size = 1
-local font = 'Fonts\\VisitorR.TTF'
+local font = "Interface\\Addons\\alDamageMeter\\media\\VisitorR.TTF"
+local font_style = "OUTLINEMONOCHROME"
 local font_size = 10
-local font_style = "OUTLINEMONOCHROME" 
 local hidetitle = false
+local classcolorbar = true
+local classcolorname = false
 -- Config end
 
 local config = {
@@ -449,6 +451,20 @@ local CheckUnit = function(unit)
 	end
 end
 
+local CheckRoster = function()
+	wipe(units)
+	if GetNumRaidMembers() > 0 then
+		for i = 1, GetNumRaidMembers(), 1 do
+			CheckUnit("raid"..i)
+		end
+	elseif GetNumPartyMembers() > 0 then
+		for i = 1, GetNumPartyMembers(), 1 do
+			CheckUnit("party"..i)
+		end
+	end
+	CheckUnit("player")
+end
+
 local IsRaidInCombat = function()
 	if GetNumRaidMembers() > 0 then
 		for i = 1, GetNumRaidMembers(), 1 do
@@ -630,19 +646,10 @@ local OnEvent = function(self, event, ...)
 			MainFrame.title:SetPoint("BOTTOMLEFT", MainFrame, "TOPLEFT", 0, 0)
 			MainFrame.title:SetText(sMode)
 			if config["Hide title"] then MainFrame.title:Hide() end
+			CheckRoster()
 		end
 	elseif event == "RAID_ROSTER_UPDATE" or event == "PARTY_MEMBERS_CHANGED" or event == "PLAYER_ENTERING_WORLD" then
-		wipe(units)
-		if GetNumRaidMembers() > 0 then
-			for i = 1, GetNumRaidMembers(), 1 do
-				CheckUnit("raid"..i)
-			end
-		elseif GetNumPartyMembers() > 0 then
-			for i = 1, GetNumPartyMembers(), 1 do
-				CheckUnit("party"..i)
-			end
-		end
-		CheckUnit("player")
+		CheckRoster()
 	elseif event == "PLAYER_REGEN_DISABLED" then
 		if not combatstarted then
 			StartCombat()
@@ -673,5 +680,4 @@ SlashCmdList["alDamage"] = function(msg)
 	display = current
 	UpdateBars()
 end
-SLASH_alDamage1 = "/aldmg" 
-
+SLASH_alDamage1 = "/aldmg"

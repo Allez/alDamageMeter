@@ -3,6 +3,7 @@
 ## Title: |cff777777al|rDamageMeter
 ## Version: 40000.2
 ## Notes: Damage meter
+## OptionalDeps: alInterface
 
 embeds.xml
 alDamageMeter.lua
