@@ -17,6 +17,7 @@ local font_size = 10
 local hidetitle = false
 local classcolorbar = true
 local classcolorname = false
+local mergeHealAbsorbs = false
 -- Config end
 
 local config = {
@@ -31,6 +32,7 @@ local config = {
 	["Font size"] = font_size,
 	["Font style"] = font_style,
 	["Bar spacing"] = spacing,
+	["Merge healing and absorbs"] = mergeHealAbsorbs,
 }
 if UIConfig then
 	UIConfig["Damage Meter"] = config
@@ -283,14 +285,14 @@ local CreateUnitInfo = function(uGUID)
 	return newdata
 end
 
-local Add = function(uGUID, ammount, mode, name)
+local Add = function(uGUID, amount, mode, name)
 	if not current[uGUID] then
 		current[uGUID] = CreateUnitInfo(uGUID)
 		--total[uGUID] = CreateUnit(uGUID)
 		tinsert(barguids, uGUID)
 	end
-	current[uGUID][mode] = current[uGUID][mode] + ammount
-	--total[uGUID][mode] = total[uGUID][mode] + ammount
+	current[uGUID][mode] = current[uGUID][mode] + amount
+	--total[uGUID][mode] = total[uGUID][mode] + amount
 end
 
 local SortMethod = function(a, b)
@@ -545,11 +547,11 @@ local OnEvent = function(self, event, ...)
 		local timestamp, eventType, sourceGUID, sourceName, sourceFlags, destGUID, destName, destFlags = select(1, ...)
 		if band(sourceFlags, filter) == 0 and band(destFlags, filter) == 0 then return end
 		if eventType=="SWING_DAMAGE" or eventType=="RANGE_DAMAGE" or eventType=="SPELL_DAMAGE" or eventType=="SPELL_PERIODIC_DAMAGE" or eventType=="DAMAGE_SHIELD" then
-			local ammount, _, _, _, _, absorbed = select(eventType=="SWING_DAMAGE" and 9 or 12, ...)
+			local amount, _, _, _, _, absorbed = select(eventType=="SWING_DAMAGE" and 9 or 12, ...)
 			if IsFriendlyUnit(sourceGUID) and not IsFriendlyUnit(destGUID) and combatstarted then
-				if ammount and ammount > 0 then
+				if amount and amount > 0 then
 					sourceGUID = owners[sourceGUID] or sourceGUID
-					Add(sourceGUID, ammount, DAMAGE)
+					Add(sourceGUID, amount, DAMAGE)
 					if not bossname and boss.BossIDs[tonumber(destGUID:sub(9, 12), 16)] then
 						bossname = destName
 					elseif not mobname then
@@ -560,7 +562,7 @@ local OnEvent = function(self, event, ...)
 			if IsFriendlyUnit(destGUID) then
 				local shielder = FindShielder(destGUID, timestamp)
 				if shielder and absorbed and absorbed > 0 then
-					Add(shielder, absorbed, ABSORB)
+					Add(shielder, absorbed, config["Merge healing and absorbs"] and SHOW_COMBAT_HEALING or ABSORB)
 				end
 			end
 		elseif eventType=="SWING_MISSED" or eventType=="RANGE_MISSED" or eventType=="SPELL_MISSED" or eventType=="SPELL_PERIODIC_MISSED" then
@@ -568,7 +570,7 @@ local OnEvent = function(self, event, ...)
 			if misstype == "ABSORB" and IsFriendlyUnit(destGUID) then
 				local shielder = FindShielder(destGUID, timestamp)
 				if shielder and amount and amount > 0 then
-					Add(shielder, amount, ABSORB)
+					Add(shielder, amount, config["Merge healing and absorbs"] and SHOW_COMBAT_HEALING or ABSORB)
 				end
 			end
 		elseif eventType=="SPELL_SUMMON" then
@@ -578,12 +580,12 @@ local OnEvent = function(self, event, ...)
 				owners[destGUID] = sourceGUID
 			end
 		elseif eventType=="SPELL_HEAL" or eventType=="SPELL_PERIODIC_HEAL" then
-			spellId, spellName, spellSchool, ammount, over, school, resist = select(9, ...)
+			spellId, spellName, spellSchool, amount, over, school, resist = select(9, ...)
 			if IsFriendlyUnit(sourceGUID) and IsFriendlyUnit(destGUID) and combatstarted then
 				over = over or 0
-				if ammount and ammount > 0 then
+				if amount and amount > 0 then
 					sourceGUID = owners[sourceGUID] or sourceGUID
-					Add(sourceGUID, ammount - over, SHOW_COMBAT_HEALING)
+					Add(sourceGUID, amount - over, SHOW_COMBAT_HEALING)
 				end
 			end
 		elseif eventType=="SPELL_DISPEL" then
