@@ -170,7 +170,7 @@ local tcopy = function(src)
 end
 
 local perSecond = function(cdata)
-	return cdata[sMode] / cdata.combatTime
+	return cdata[sMode].amount / cdata.combatTime
 end
 
 local report = function(channel, cn)
@@ -183,9 +183,9 @@ local report = function(channel, cn)
 	for i, v in pairs(barguids) do
 		if i > config["Report lines"] or display[v][sMode] == 0 then return end
 		if sMode == DAMAGE or sMode == SHOW_COMBAT_HEALING then
-			message = string.format("%2d. %s    %s (%.0f)", i, display[v].name, truncate(display[v][sMode]), perSecond(display[v]))
+			message = string.format("%2d. %s    %s (%.0f)", i, display[v].name, truncate(display[v][sMode].amount), perSecond(display[v]))
 		else
-			message = string.format("%2d. %s    %s", i, display[v].name, truncate(display[v][sMode]))
+			message = string.format("%2d. %s    %s", i, display[v].name, truncate(display[v][sMode].amount))
 		end
 		if channel == "Chat" then
 			DEFAULT_CHAT_FRAME:AddMessage(message)
@@ -257,6 +257,17 @@ local reportList = {
 	},
 }
 
+local OnBarEnter = function(self)
+	for i, v in pairs(display[barguids[self.id]][sMode].spells) do
+		GameTooltip:AddDoubleLine(i, v, 1, 1, 0, 1, 1, 0)
+	end
+	GameTooltip:Show()
+end
+
+local OnBarLeave = function(self)
+	GameTooltip:Hide()
+end
+
 local CreateBar = function()
 	local newbar = CreateFrame("Statusbar", nil, MainFrame)
 	newbar:SetStatusBarTexture(config["Texture"])
@@ -269,6 +280,8 @@ local CreateBar = function()
 	newbar.right = CreateFS(newbar)
 	newbar.right:SetPoint("RIGHT", -2, 0)
 	newbar.right:SetJustifyH("RIGHT")
+	newbar:SetScript("OnEnter", OnBarEnter)
+	newbar:SetScript("OnLeave", OnBarLeave)
 	return newbar
 end
 
@@ -280,23 +293,29 @@ local CreateUnitInfo = function(uGUID)
 		combatTime = 1,
 	}
 	for _, v in pairs(displayMode) do
-		newdata[v] = 0
+		newdata[v] = {
+			amount = 0,
+			spells = {},
+			targets = {},
+		}
 	end
 	return newdata
 end
 
-local Add = function(uGUID, amount, mode, name)
+local Add = function(uGUID, amount, mode, spell, target)
 	if not current[uGUID] then
 		current[uGUID] = CreateUnitInfo(uGUID)
 		--total[uGUID] = CreateUnit(uGUID)
 		tinsert(barguids, uGUID)
 	end
-	current[uGUID][mode] = current[uGUID][mode] + amount
+	current[uGUID][mode].amount = current[uGUID][mode].amount + amount
+	current[uGUID][mode].spells[spell] = (current[uGUID][mode].spells[spell] or 0) + amount
+	current[uGUID][mode].targets[target] = (current[uGUID][mode].targets[target] or 0) + amount
 	--total[uGUID][mode] = total[uGUID][mode] + amount
 end
 
 local SortMethod = function(a, b)
-	return display[b][sMode] < display[a][sMode]
+	return display[b][sMode].amount < display[a][sMode].amount
 end
 
 local UpdateBars = function()
@@ -311,13 +330,14 @@ local UpdateBars = function()
 			bar[i] = CreateBar()
 			bar[i]:SetPoint("TOP", 0, -(config["Bar height"] + config["Bar spacing"]) * (i-1))
 		end
-		bar[i]:SetValue(100 * cur[sMode] / max[sMode])
+		bar[i].id = i + offset
+		bar[i]:SetValue(100 * cur[sMode].amount / max[sMode].amount)
 		color = RAID_CLASS_COLORS[cur.class]
 		bar[i]:SetStatusBarColor(color.r, color.g, color.b)
 		if sMode == DAMAGE or sMode == SHOW_COMBAT_HEALING then
-			bar[i].right:SetFormattedText("%s (%.0f)", truncate(cur[sMode]), perSecond(cur))
+			bar[i].right:SetFormattedText("%s (%.0f)", truncate(cur[sMode].amount), perSecond(cur))
 		else
-			bar[i].right:SetFormattedText("%s", truncate(cur[sMode]))
+			bar[i].right:SetFormattedText("%s", truncate(cur[sMode].amount))
 		end
 		bar[i].left:SetText(cur.name)
 		bar[i]:Show()
@@ -447,7 +467,11 @@ end
 
 local CheckUnit = function(unit)
 	if UnitExists(unit) then
-		units[UnitGUID(unit)] = { name = UnitName(unit), class = select(2, UnitClass(unit)), unit = unit}
+		units[UnitGUID(unit)] = {
+			name = UnitName(unit),
+			class = select(2, UnitClass(unit)),
+			unit = unit,
+		}
 		pet = unit .. "pet"
 		CheckPet(unit, pet)
 	end
@@ -492,7 +516,7 @@ local OnUpdate = function(self, elapsed)
 				v.combatTime = v.combatTime + timer
 			end
 			if i == UnitGUID("player") then
-				dataobj.text = string.format("DPS: %.0f", v[DAMAGE] / v.combatTime)
+				dataobj.text = string.format("DPS: %.0f", v[DAMAGE].amount / v.combatTime)
 			end
 		end
 		UpdateBars()
@@ -531,15 +555,16 @@ end
 
 local FindShielder = function(destGUID, timestamp)
 	if not shields[destGUID] then return end
-	local found_shielder = nil
+	local found_shielder, found_shield = nil, nil
 	for shield, spells in pairs(shields[destGUID]) do
 		for shielder, ts in pairs(spells) do
 			if ts - timestamp > 0 then
 				found_shielder = shielder
+				found_shield = shield
 			end
 		end
 	end
-	return found_shielder
+	return found_shielder, found_shield
 end
 
 local OnEvent = function(self, event, ...)
@@ -548,10 +573,11 @@ local OnEvent = function(self, event, ...)
 		if band(sourceFlags, filter) == 0 and band(destFlags, filter) == 0 then return end
 		if eventType=="SWING_DAMAGE" or eventType=="RANGE_DAMAGE" or eventType=="SPELL_DAMAGE" or eventType=="SPELL_PERIODIC_DAMAGE" or eventType=="DAMAGE_SHIELD" then
 			local amount, _, _, _, _, absorbed = select(eventType=="SWING_DAMAGE" and 9 or 12, ...)
+			local spellId, spellName = eventType=="SWING_DAMAGE" and "Swing" or select(10, ...)
 			if IsFriendlyUnit(sourceGUID) and not IsFriendlyUnit(destGUID) and combatstarted then
 				if amount and amount > 0 then
 					sourceGUID = owners[sourceGUID] or sourceGUID
-					Add(sourceGUID, amount, DAMAGE)
+					Add(sourceGUID, amount, DAMAGE, spellName, destName)
 					if not bossname and boss.BossIDs[tonumber(destGUID:sub(9, 12), 16)] then
 						bossname = destName
 					elseif not mobname then
@@ -560,17 +586,17 @@ local OnEvent = function(self, event, ...)
 				end
 			end
 			if IsFriendlyUnit(destGUID) then
-				local shielder = FindShielder(destGUID, timestamp)
+				local shielder, shield = FindShielder(destGUID, timestamp)
 				if shielder and absorbed and absorbed > 0 then
-					Add(shielder, absorbed, config["Merge healing and absorbs"] and SHOW_COMBAT_HEALING or ABSORB)
+					Add(shielder, absorbed, config["Merge healing and absorbs"] and SHOW_COMBAT_HEALING or ABSORB, shield, destName)
 				end
 			end
 		elseif eventType=="SWING_MISSED" or eventType=="RANGE_MISSED" or eventType=="SPELL_MISSED" or eventType=="SPELL_PERIODIC_MISSED" then
 			local misstype, amount = select(eventType=="SWING_MISSED" and 9 or 12, ...)
 			if misstype == "ABSORB" and IsFriendlyUnit(destGUID) then
-				local shielder = FindShielder(destGUID, timestamp)
+				local shielder, shield = FindShielder(destGUID, timestamp)
 				if shielder and amount and amount > 0 then
-					Add(shielder, amount, config["Merge healing and absorbs"] and SHOW_COMBAT_HEALING or ABSORB)
+					Add(shielder, amount, config["Merge healing and absorbs"] and SHOW_COMBAT_HEALING or ABSORB, shield, destName)
 				end
 			end
 		elseif eventType=="SPELL_SUMMON" then
@@ -585,18 +611,18 @@ local OnEvent = function(self, event, ...)
 				over = over or 0
 				if amount and amount > 0 then
 					sourceGUID = owners[sourceGUID] or sourceGUID
-					Add(sourceGUID, amount - over, SHOW_COMBAT_HEALING)
+					Add(sourceGUID, amount - over, SHOW_COMBAT_HEALING, spellName, destName)
 				end
 			end
 		elseif eventType=="SPELL_DISPEL" then
 			if IsFriendlyUnit(sourceGUID) and IsFriendlyUnit(destGUID) and combatstarted then
 				sourceGUID = owners[sourceGUID] or sourceGUID
-				Add(sourceGUID, 1, DISPELS)
+				Add(sourceGUID, 1, DISPELS, "Dispel", destName)
 			end
 		elseif eventType=="SPELL_INTERRUPT" then
 			if IsFriendlyUnit(sourceGUID) and not IsFriendlyUnit(destGUID) and combatstarted then
 				sourceGUID = owners[sourceGUID] or sourceGUID
-				Add(sourceGUID, 1, INTERRUPTS)
+				Add(sourceGUID, 1, INTERRUPTS, "Interrupt", destName)
 			end
 		elseif eventType=="SPELL_AURA_APPLIED" or eventType=="SPELL_AURA_REFRESH" then
 			local spellId = select(9, ...)
@@ -645,7 +671,7 @@ local OnEvent = function(self, event, ...)
 			MainFrame:Show()
 			UIDropDownMenu_Initialize(menuFrame, CreateMenu, "MENU")
 			MainFrame.title = CreateFS(MainFrame)
-			MainFrame.title:SetPoint("BOTTOMLEFT", MainFrame, "TOPLEFT", 0, 0)
+			MainFrame.title:SetPoint("BOTTOM", MainFrame, "TOP", 0, 1)
 			MainFrame.title:SetText(sMode)
 			if config["Hide title"] then MainFrame.title:Hide() end
 			CheckRoster()
