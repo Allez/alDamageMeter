@@ -181,7 +181,7 @@ local report = function(channel, cn)
 		SendChatMessage(message, channel, nil, cn)
 	end
 	for i, v in pairs(barguids) do
-		if i > config["Report lines"] or display[v][sMode] == 0 then return end
+		if i > config["Report lines"] or display[v][sMode].amount == 0 then return end
 		if sMode == DAMAGE or sMode == SHOW_COMBAT_HEALING then
 			message = string.format("%2d. %s    %s (%.0f)", i, display[v].name, truncate(display[v][sMode].amount), perSecond(display[v]))
 		else
@@ -258,8 +258,26 @@ local reportList = {
 }
 
 local OnBarEnter = function(self)
-	for i, v in pairs(display[barguids[self.id]][sMode].spells) do
-		GameTooltip:AddDoubleLine(i, v, 1, 1, 0, 1, 1, 0)
+	GameTooltip:SetOwner(self, "ANCHOR_BOTTOMRIGHT")
+	GameTooltip:AddLine(self.left:GetText())
+	GameTooltip:AddLine(SPELL_DETAIL)
+	local a = {}
+	local amount = display[barguids[self.id]][sMode].amount
+	for spell, value in pairs(display[barguids[self.id]][sMode].spells) do
+		tinsert(a, {spell, value})
+	end
+	table.sort(a, function(a, b) return a[2] > b[2] end)
+	for _, v in pairs(a) do
+		GameTooltip:AddDoubleLine(v[1], string.format("%d (%.1f%%)", v[2], v[2]/amount*100), 1, 1, 1, 1, 1, 1)
+	end
+	wipe(a)
+	GameTooltip:AddLine(TARGET)
+	for target, value in pairs(display[barguids[self.id]][sMode].targets) do
+		tinsert(a, {target, value})
+	end
+	table.sort(a, function(a, b) return a[2] > b[2] end)
+	for _, v in pairs(a) do
+		GameTooltip:AddDoubleLine(v[1], string.format("%d (%.1f%%)", v[2], v[2]/amount*100), 1, 1, 1, 1, 1, 1)
 	end
 	GameTooltip:Show()
 end
@@ -282,6 +300,11 @@ local CreateBar = function()
 	newbar.right:SetJustifyH("RIGHT")
 	newbar:SetScript("OnEnter", OnBarEnter)
 	newbar:SetScript("OnLeave", OnBarLeave)
+	newbar:SetScript("OnMouseUp", function(self, button)
+		if button == "RightButton" then
+			ToggleDropDownMenu(1, nil, menuFrame, 'cursor', 0, 0)
+		end
+	end)
 	return newbar
 end
 
@@ -309,8 +332,8 @@ local Add = function(uGUID, amount, mode, spell, target)
 		tinsert(barguids, uGUID)
 	end
 	current[uGUID][mode].amount = current[uGUID][mode].amount + amount
-	current[uGUID][mode].spells[spell] = (current[uGUID][mode].spells[spell] or 0) + amount
-	current[uGUID][mode].targets[target] = (current[uGUID][mode].targets[target] or 0) + amount
+	if spell then current[uGUID][mode].spells[spell] = (current[uGUID][mode].spells[spell] or 0) + amount end
+	if spell then current[uGUID][mode].targets[target] = (current[uGUID][mode].targets[target] or 0) + amount end
 	--total[uGUID][mode] = total[uGUID][mode] + amount
 end
 
@@ -325,7 +348,7 @@ local UpdateBars = function()
 		cur = display[barguids[i+offset]]
 		max = display[barguids[1]]
 		if i > config["Visible bars"] or not cur then break end
-		if cur[sMode] == 0 then break end
+		if cur[sMode].amount == 0 then break end
 		if not bar[i] then 
 			bar[i] = CreateBar()
 			bar[i]:SetPoint("TOP", 0, -(config["Bar height"] + config["Bar spacing"]) * (i-1))
@@ -379,7 +402,7 @@ local CreateMenu = function(self, level)
 	local info = {}
 	if level == 1 then
 		info.isTitle = 1
-		info.text = GAMEOPTIONS_MENU
+		info.text = addon_name
 		info.notCheckable = 1
 		UIDropDownMenu_AddButton(info, level)
 		wipe(info)
@@ -530,7 +553,7 @@ end
 local OnMouseWheel = function(self, direction)
 	num = 0
 	for i = 1, #barguids do
-		if display[barguids[i]][sMode] > 0 then
+		if display[barguids[i]][sMode].amount > 0 then
 			num = num + 1
 		end
 	end
@@ -573,7 +596,7 @@ local OnEvent = function(self, event, ...)
 		if band(sourceFlags, filter) == 0 and band(destFlags, filter) == 0 then return end
 		if eventType=="SWING_DAMAGE" or eventType=="RANGE_DAMAGE" or eventType=="SPELL_DAMAGE" or eventType=="SPELL_PERIODIC_DAMAGE" or eventType=="DAMAGE_SHIELD" then
 			local amount, _, _, _, _, absorbed = select(eventType=="SWING_DAMAGE" and 9 or 12, ...)
-			local spellId, spellName = eventType=="SWING_DAMAGE" and "Swing" or select(10, ...)
+			local spellName = eventType=="SWING_DAMAGE" and MELEE_ATTACK or select(10, ...)
 			if IsFriendlyUnit(sourceGUID) and not IsFriendlyUnit(destGUID) and combatstarted then
 				if amount and amount > 0 then
 					sourceGUID = owners[sourceGUID] or sourceGUID
@@ -625,19 +648,19 @@ local OnEvent = function(self, event, ...)
 				Add(sourceGUID, 1, INTERRUPTS, "Interrupt", destName)
 			end
 		elseif eventType=="SPELL_AURA_APPLIED" or eventType=="SPELL_AURA_REFRESH" then
-			local spellId = select(9, ...)
+			local spellId, spellName = select(9, ...)
 			sourceGUID = owners[sourceGUID] or sourceGUID
 			if AbsorbSpellDuration[spellId] and IsFriendlyUnit(sourceGUID) and IsFriendlyUnit(destGUID) then
 				shields[destGUID] = shields[destGUID] or {}
-				shields[destGUID][spellId] = shields[destGUID][spellId] or {}
-				shields[destGUID][spellId][sourceGUID] = timestamp + AbsorbSpellDuration[spellId]
+				shields[destGUID][spellName] = shields[destGUID][spellName] or {}
+				shields[destGUID][spellName][sourceGUID] = timestamp + AbsorbSpellDuration[spellId]
 			end
 		elseif eventType=="SPELL_AURA_REMOVED" then
-			local spellId = select(9, ...)
+			local spellId, spellName = select(9, ...)
 			sourceGUID = owners[sourceGUID] or sourceGUID
 			if AbsorbSpellDuration[spellId] and IsFriendlyUnit(destGUID) then
-				if shields[destGUID] and shields[destGUID][spellId] and shields[destGUID][spellId][destGUID] then
-					shields[destGUID][spellId][destGUID] = timestamp + 0.1
+				if shields[destGUID] and shields[destGUID][spellName] and shields[destGUID][spellName][destGUID] then
+					shields[destGUID][spellName][destGUID] = timestamp + 0.1
 				end
 			end
 		else
