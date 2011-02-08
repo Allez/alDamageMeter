@@ -66,7 +66,6 @@ local AbsorbSpellDuration = {
 	-- Death Knight
 	[48707] = 5, -- Anti-Magic Shell (DK) Rank 1 -- Does not currently seem to show tracable combat log events. It shows energizes which do not reveal the amount of damage absorbed
 	[51052] = 10, -- Anti-Magic Zone (DK)( Rank 1 (Correct spellID?)
-		-- Does DK Spell Deflection show absorbs in the CL?
 	[51271] = 20, -- Unbreakable Armor (DK)
 	[77535] = 10, -- Blood Shield (DK)
 	-- Druid
@@ -78,7 +77,7 @@ local AbsorbSpellDuration = {
 	[543] = 30 , -- Fire Ward
 	-- Paladin
 	[58597] = 6, -- Sacred Shield (Paladin) proc (Fixed, thanks to Julith)
-	[86273] = 6,	-- Illuminated Healing, Pala Mastery
+	[86273] = 6, -- Illuminated Healing, Pala Mastery
 	-- Priest
 	[17] = 30, -- Power Word: Shield
 	[47753] = 12, -- Divine Aegis
@@ -150,7 +149,7 @@ local CreateFS = function(frame)
 	return fstring
 end
 
-local CreateBG = function(parent)
+local CreateBG = CreateBG or function(parent)
 	local bg = CreateFrame("Frame", nil, parent)
 	bg:SetPoint("TOPLEFT", -border_size, border_size)
 	bg:SetPoint("BOTTOMRIGHT", border_size, -border_size)
@@ -240,7 +239,7 @@ local reportList = {
 	{
 		text = PLAYER.."..", 
 		func = function() 
-			StaticPopupDialogs[addon_name.."ReportDialog"].OnAccept = 	function(self)
+			StaticPopupDialogs[addon_name.."ReportDialog"].OnAccept = function(self)
 				report("WHISPER", _G[self:GetName().."EditBox"]:GetText())
 			end
 			StaticPopup_Show(addon_name.."ReportDialog")
@@ -249,7 +248,7 @@ local reportList = {
 	{
 		text = CHANNEL.."..", 
 		func = function() 
-			StaticPopupDialogs[addon_name.."ReportDialog"].OnAccept = 	function(self)
+			StaticPopupDialogs[addon_name.."ReportDialog"].OnAccept = function(self)
 				report("CHANNEL", _G[self:GetName().."EditBox"]:GetText())
 			end
 			StaticPopup_Show(addon_name.."ReportDialog")
@@ -638,7 +637,7 @@ local OnEvent = function(self, event, ...)
 				end
 			end
 		elseif eventType=="SPELL_DISPEL" then
-			if IsFriendlyUnit(sourceGUID) and IsFriendlyUnit(destGUID) and combatstarted then
+			if IsFriendlyUnit(sourceGUID) and combatstarted then
 				sourceGUID = owners[sourceGUID] or sourceGUID
 				Add(sourceGUID, 1, DISPELS, "Dispel", destName)
 			end
@@ -672,7 +671,6 @@ local OnEvent = function(self, event, ...)
 			self:UnregisterEvent(event)
 			MainFrame = CreateFrame("Frame", addon_name.."Frame", UIParent)
 			MainFrame:SetPoint(anchor, x, y)
-			MainFrame:SetSize(config["Width"], height)
 			MainFrame.bg = CreateBG(MainFrame)
 			MainFrame:SetMovable(true)
 			MainFrame:EnableMouse(true)
@@ -696,9 +694,11 @@ local OnEvent = function(self, event, ...)
 			MainFrame.title = CreateFS(MainFrame)
 			MainFrame.title:SetPoint("BOTTOM", MainFrame, "TOP", 0, 1)
 			MainFrame.title:SetText(sMode)
-			if config["Hide title"] then MainFrame.title:Hide() end
 			CheckRoster()
 		end
+	elseif event == "VARIABLES_LOADED" then
+		if config["Hide title"] then MainFrame.title:Hide() end
+		MainFrame:SetSize(config["Width"], height)
 	elseif event == "RAID_ROSTER_UPDATE" or event == "PARTY_MEMBERS_CHANGED" or event == "PLAYER_ENTERING_WORLD" then
 		CheckRoster()
 	elseif event == "PLAYER_REGEN_DISABLED" then
@@ -716,6 +716,7 @@ local addon = CreateFrame("frame", nil, UIParent)
 addon:SetScript('OnEvent', OnEvent)
 addon:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
 addon:RegisterEvent("ADDON_LOADED")
+addon:RegisterEvent("VARIABLES_LOADED")
 addon:RegisterEvent("RAID_ROSTER_UPDATE")
 addon:RegisterEvent("PARTY_MEMBERS_CHANGED")
 addon:RegisterEvent("PLAYER_ENTERING_WORLD")
