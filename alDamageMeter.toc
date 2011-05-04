@@ -1,7 +1,7 @@
-## Interface: 40000
+## Interface: 40100
 ## Author: Allez
 ## Title: |cff777777al|rDamageMeter
-## Version: 40000.1
+## Version: 40100.4
 ## Notes: Damage meter
 ## OptionalDeps: alInterface
 

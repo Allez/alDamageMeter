@@ -20,22 +20,80 @@ local classcolorname = false
 local mergeHealAbsorbs = false
 -- Config end
 
-local config = {
-	["Texture"] = texture,
-	["Width"] = width,
-	["Bar height"] = barheight,
-	["Visible bars"] = maxbars,
-	["Saved fights"] = maxfights,
-	["Report lines"] = reportstrings,
-	["Hide title"] = hidetitle,
-	["Font"] = font,
-	["Font size"] = font_size,
-	["Font style"] = font_style,
-	["Bar spacing"] = spacing,
-	["Merge healing and absorbs"] = mergeHealAbsorbs,
-}
-if UIConfig then
-	UIConfig["Damage Meter"] = config
+if IsAddOnLoaded("alInterface") then
+	local cfg = {}
+	local config = {
+		general = {
+			hidetitle = {
+				order = 1,
+				value = false,
+			},
+			mergeheal = {
+				order = 2,
+				value = false,
+			},
+			visiblebars = {
+				order = 3,
+				value = 8,
+				type = "range",
+				min = 2,
+				max = 40,
+			},
+			maxfights = {
+				order = 4,
+				value = 10,
+				type = "range",
+				min = 1,
+				max = 30,
+			},
+			reportstrings = {
+				order = 5,
+				value = 10,
+				type = "range",
+				min = 1,
+				max = 40,
+			},
+		},
+		sizes = {
+			width = {
+				order = 1,
+				value = 125,
+				type = "range",
+				min = 10,
+				max = 400,
+			},
+			barheight = {
+				order = 2,
+				value = 14,
+				type = "range",
+				min = 8,
+				max = 25,
+			},
+			spacing = {
+				order = 3,
+				value = 1,
+				type = "range",
+				min = 0,
+				max = 10,
+			},
+		},
+	}
+
+	UIConfigGUI.damage = config
+	UIConfig.damage = cfg
+
+	local frame = CreateFrame("Frame")
+	frame:RegisterEvent("VARIABLES_LOADED")
+	frame:SetScript("OnEvent", function(self, event)
+		width = cfg.sizes.width
+		barheight = cfg.sizes.barheight
+		spacing = cfg.sizes.spacing
+		maxbars = cfg.general.visiblebars
+		maxfights = cfg.general.maxfights
+		reportstrings = cfg.general.reportstrings
+		hidetitle = cfg.general.hidetitle
+		mergeheal = cfg.general.mergeheal
+	end)
 end
 
 local addon_name, ns = ...
@@ -141,9 +199,9 @@ local IsUnitInCombat = function(uGUID)
 	return false
 end
 
-local CreateFS = function(frame)
+local CreateFS = CreateFS or function(frame)
 	local fstring = frame:CreateFontString(nil, 'OVERLAY')
-	fstring:SetFont(config["Font"], config["Font size"], config["Font style"])
+	fstring:SetFont(font, font_size, font_style)
 	fstring:SetShadowColor(0, 0, 0, 1)
 	fstring:SetShadowOffset(0, 0)
 	return fstring
@@ -180,7 +238,7 @@ local report = function(channel, cn)
 		SendChatMessage(message, channel, nil, cn)
 	end
 	for i, v in pairs(barguids) do
-		if i > config["Report lines"] or display[v][sMode].amount == 0 then return end
+		if i > reportstrings or display[v][sMode].amount == 0 then return end
 		if sMode == DAMAGE or sMode == SHOW_COMBAT_HEALING then
 			message = string.format("%2d. %s    %s (%.0f)", i, display[v].name, truncate(display[v][sMode].amount), perSecond(display[v]))
 		else
@@ -287,10 +345,10 @@ end
 
 local CreateBar = function()
 	local newbar = CreateFrame("Statusbar", nil, MainFrame)
-	newbar:SetStatusBarTexture(config["Texture"])
+	newbar:SetStatusBarTexture(texture)
 	newbar:SetMinMaxValues(0, 100)
-	newbar:SetWidth(config["Width"])
-	newbar:SetHeight(config["Bar height"])
+	newbar:SetWidth(width)
+	newbar:SetHeight(barheight)
 	newbar.left = CreateFS(newbar)
 	newbar.left:SetPoint("LEFT", 2, 0)
 	newbar.left:SetJustifyH("LEFT")
@@ -346,11 +404,11 @@ local UpdateBars = function()
 	for i = 1, #barguids do
 		cur = display[barguids[i+offset]]
 		max = display[barguids[1]]
-		if i > config["Visible bars"] or not cur then break end
+		if i > maxbars or not cur then break end
 		if cur[sMode].amount == 0 then break end
 		if not bar[i] then 
 			bar[i] = CreateBar()
-			bar[i]:SetPoint("TOP", 0, -(config["Bar height"] + config["Bar spacing"]) * (i-1))
+			bar[i]:SetPoint("TOP", 0, -(barheight + spacing) * (i-1))
 		end
 		bar[i].id = i + offset
 		bar[i]:SetValue(100 * cur[sMode].amount / max[sMode].amount)
@@ -473,7 +531,7 @@ local EndCombat = function()
 	combatstarted = false
 	local fname = bossname or mobname
 	if fname then
-		if #fights >= config["Saved fights"] then
+		if #fights >= maxfights then
 			tremove(fights, 1)
 		end
 		tinsert(fights, {name = fname, data = tcopy(current)})
@@ -591,11 +649,11 @@ end
 
 local OnEvent = function(self, event, ...)
 	if event == "COMBAT_LOG_EVENT_UNFILTERED" then
-		local timestamp, eventType, sourceGUID, sourceName, sourceFlags, destGUID, destName, destFlags = select(1, ...)
+		local timestamp, eventType, hideCaster, sourceGUID, sourceName, sourceFlags, destGUID, destName, destFlags = select(1, ...)
 		if band(sourceFlags, filter) == 0 and band(destFlags, filter) == 0 then return end
 		if eventType=="SWING_DAMAGE" or eventType=="RANGE_DAMAGE" or eventType=="SPELL_DAMAGE" or eventType=="SPELL_PERIODIC_DAMAGE" or eventType=="DAMAGE_SHIELD" then
-			local amount, _, _, _, _, absorbed = select(eventType=="SWING_DAMAGE" and 9 or 12, ...)
-			local spellName = eventType=="SWING_DAMAGE" and MELEE_ATTACK or select(10, ...)
+			local amount, _, _, _, _, absorbed = select(eventType=="SWING_DAMAGE" and 10 or 13, ...)
+			local spellName = eventType=="SWING_DAMAGE" and MELEE_ATTACK or select(11, ...)
 			if IsFriendlyUnit(sourceGUID) and not IsFriendlyUnit(destGUID) and combatstarted then
 				if amount and amount > 0 then
 					sourceGUID = owners[sourceGUID] or sourceGUID
@@ -610,15 +668,15 @@ local OnEvent = function(self, event, ...)
 			if IsFriendlyUnit(destGUID) then
 				local shielder, shield = FindShielder(destGUID, timestamp)
 				if shielder and absorbed and absorbed > 0 then
-					Add(shielder, absorbed, config["Merge healing and absorbs"] and SHOW_COMBAT_HEALING or ABSORB, shield, destName)
+					Add(shielder, absorbed, mergeHealAbsorbs and SHOW_COMBAT_HEALING or ABSORB, shield, destName)
 				end
 			end
 		elseif eventType=="SWING_MISSED" or eventType=="RANGE_MISSED" or eventType=="SPELL_MISSED" or eventType=="SPELL_PERIODIC_MISSED" then
-			local misstype, amount = select(eventType=="SWING_MISSED" and 9 or 12, ...)
+			local misstype, amount = select(eventType=="SWING_MISSED" and 10 or 13, ...)
 			if misstype == "ABSORB" and IsFriendlyUnit(destGUID) then
 				local shielder, shield = FindShielder(destGUID, timestamp)
 				if shielder and amount and amount > 0 then
-					Add(shielder, amount, config["Merge healing and absorbs"] and SHOW_COMBAT_HEALING or ABSORB, shield, destName)
+					Add(shielder, amount, mergeHealAbsorbs and SHOW_COMBAT_HEALING or ABSORB, shield, destName)
 				end
 			end
 		elseif eventType=="SPELL_SUMMON" then
@@ -628,7 +686,7 @@ local OnEvent = function(self, event, ...)
 				owners[destGUID] = sourceGUID
 			end
 		elseif eventType=="SPELL_HEAL" or eventType=="SPELL_PERIODIC_HEAL" then
-			spellId, spellName, spellSchool, amount, over, school, resist = select(9, ...)
+			spellId, spellName, spellSchool, amount, over, school, resist = select(10, ...)
 			if IsFriendlyUnit(sourceGUID) and IsFriendlyUnit(destGUID) and combatstarted then
 				over = over or 0
 				if amount and amount > 0 then
@@ -647,7 +705,7 @@ local OnEvent = function(self, event, ...)
 				Add(sourceGUID, 1, INTERRUPTS, "Interrupt", destName)
 			end
 		elseif eventType=="SPELL_AURA_APPLIED" or eventType=="SPELL_AURA_REFRESH" then
-			local spellId, spellName = select(9, ...)
+			local spellId, spellName = select(10, ...)
 			sourceGUID = owners[sourceGUID] or sourceGUID
 			if AbsorbSpellDuration[spellId] and IsFriendlyUnit(sourceGUID) and IsFriendlyUnit(destGUID) then
 				shields[destGUID] = shields[destGUID] or {}
@@ -655,7 +713,7 @@ local OnEvent = function(self, event, ...)
 				shields[destGUID][spellName][sourceGUID] = timestamp + AbsorbSpellDuration[spellId]
 			end
 		elseif eventType=="SPELL_AURA_REMOVED" then
-			local spellId, spellName = select(9, ...)
+			local spellId, spellName = select(10, ...)
 			sourceGUID = owners[sourceGUID] or sourceGUID
 			if AbsorbSpellDuration[spellId] and IsFriendlyUnit(destGUID) then
 				if shields[destGUID] and shields[destGUID][spellName] and shields[destGUID][spellName][destGUID] then
@@ -691,14 +749,15 @@ local OnEvent = function(self, event, ...)
 			MainFrame:SetScript("OnMouseWheel", OnMouseWheel)
 			MainFrame:Show()
 			UIDropDownMenu_Initialize(menuFrame, CreateMenu, "MENU")
-			MainFrame.title = CreateFS(MainFrame)
-			MainFrame.title:SetPoint("BOTTOM", MainFrame, "TOP", 0, 1)
-			MainFrame.title:SetText(sMode)
 			CheckRoster()
 		end
 	elseif event == "VARIABLES_LOADED" then
-		if config["Hide title"] then MainFrame.title:Hide() end
-		MainFrame:SetSize(config["Width"], height)
+		if not hidetitle then
+			MainFrame.title = CreateFS(MainFrame)
+			MainFrame.title:SetPoint("BOTTOM", MainFrame, "TOP", 0, 1)
+			MainFrame.title:SetText(sMode)
+		end
+		MainFrame:SetSize(width, height)
 	elseif event == "RAID_ROSTER_UPDATE" or event == "PARTY_MEMBERS_CHANGED" or event == "PLAYER_ENTERING_WORLD" then
 		CheckRoster()
 	elseif event == "PLAYER_REGEN_DISABLED" then
