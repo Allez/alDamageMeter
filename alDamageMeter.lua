@@ -16,6 +16,7 @@ local font_style = "OUTLINEMONOCHROME"
 local font_size = 10
 local hidetitle = false
 local classcolorbar = true
+local onlyboss = false
 local classcolorname = false
 local mergeHealAbsorbs = false
 -- Config end
@@ -52,6 +53,10 @@ if IsAddOnLoaded("alInterface") then
 				type = "range",
 				min = 1,
 				max = 40,
+			},
+			onlyboss = {
+				order = 6,
+				value = false,
 			},
 		},
 		sizes = {
@@ -92,7 +97,8 @@ if IsAddOnLoaded("alInterface") then
 		maxfights = cfg.general.maxfights
 		reportstrings = cfg.general.reportstrings
 		hidetitle = cfg.general.hidetitle
-		mergeheal = cfg.general.mergeheal
+		mergeHealAbsorbs = cfg.general.mergeheal
+		onlyboss = cfg.general.onlyboss
 	end)
 end
 
@@ -102,7 +108,7 @@ local dataobj = LibStub:GetLibrary('LibDataBroker-1.1'):NewDataObject('Dps', {ty
 local band = bit.band
 local bossname, mobname = nil, nil
 local units, bar, barguids, owners = {}, {}, {}, {}
-local current, display, fights = {}, {}, {}
+local current, total, display, fights = {}, {}, {}, {}
 local timer, num, offset = 0, 0, 0
 local MainFrame
 local combatstarted = false
@@ -385,13 +391,19 @@ end
 local Add = function(uGUID, amount, mode, spell, target)
 	if not current[uGUID] then
 		current[uGUID] = CreateUnitInfo(uGUID)
-		--total[uGUID] = CreateUnit(uGUID)
 		tinsert(barguids, uGUID)
 	end
+	if not total[uGUID] then
+		total[uGUID] = CreateUnitInfo(uGUID)
+	end
 	current[uGUID][mode].amount = current[uGUID][mode].amount + amount
-	if spell then current[uGUID][mode].spells[spell] = (current[uGUID][mode].spells[spell] or 0) + amount end
-	if spell then current[uGUID][mode].targets[target] = (current[uGUID][mode].targets[target] or 0) + amount end
-	--total[uGUID][mode] = total[uGUID][mode] + amount
+	total[uGUID][mode].amount = total[uGUID][mode].amount + amount
+	if spell then 
+		current[uGUID][mode].spells[spell] = (current[uGUID][mode].spells[spell] or 0) + amount
+		current[uGUID][mode].targets[target] = (current[uGUID][mode].targets[target] or 0) + amount
+		total[uGUID][mode].spells[spell] = (total[uGUID][mode].spells[spell] or 0) + amount
+		total[uGUID][mode].targets[target] = (total[uGUID][mode].targets[target] or 0) + amount
+	end
 end
 
 local SortMethod = function(a, b)
@@ -440,7 +452,7 @@ end
 local Clean = function()
 	numfights = 0
 	wipe(current)
-	--wipe(total)
+	wipe(total)
 	wipe(fights)
 	ResetDisplay(current)
 end
@@ -510,11 +522,11 @@ local CreateMenu = function(self, level)
 			info.func = function() ResetDisplay(current) end
 			info.notCheckable = 1
 			UIDropDownMenu_AddButton(info, level)
-			--[[wipe(info)
+			wipe(info)
 			info.text = "Total"
 			info.func = function() ResetDisplay(total) end
 			info.notCheckable = 1
-			UIDropDownMenu_AddButton(info, level)]]
+			UIDropDownMenu_AddButton(info, level)
 			for i, v in pairs(fights) do
 				wipe(info)
 				info.text = v.name
@@ -599,6 +611,11 @@ local OnUpdate = function(self, elapsed)
 				dataobj.text = string.format("DPS: %.0f", v[DAMAGE].amount / v.combatTime)
 			end
 		end
+		for i, v in pairs(total) do
+			if IsUnitInCombat(i) then
+				v.combatTime = v.combatTime + timer
+			end
+		end
 		UpdateBars()
 		if not InCombatLockdown() and not IsRaidInCombat() then
 			EndCombat()
@@ -649,18 +666,18 @@ end
 
 local OnEvent = function(self, event, ...)
 	if event == "COMBAT_LOG_EVENT_UNFILTERED" then
-		local timestamp, eventType, hideCaster, sourceGUID, sourceName, sourceFlags, destGUID, destName, destFlags = select(1, ...)
+		local timestamp, eventType, hideCaster, sourceGUID, sourceName, sourceFlags, sourceRaidFlags, destGUID, destName, destFlags, destRaidFlags = select(1, ...)
 		if band(sourceFlags, filter) == 0 and band(destFlags, filter) == 0 then return end
 		if eventType=="SWING_DAMAGE" or eventType=="RANGE_DAMAGE" or eventType=="SPELL_DAMAGE" or eventType=="SPELL_PERIODIC_DAMAGE" or eventType=="DAMAGE_SHIELD" then
-			local amount, _, _, _, _, absorbed = select(eventType=="SWING_DAMAGE" and 10 or 13, ...)
-			local spellName = eventType=="SWING_DAMAGE" and MELEE_ATTACK or select(11, ...)
+			local amount, _, _, _, _, absorbed = select(eventType=="SWING_DAMAGE" and 12 or 15, ...)
+			local spellName = eventType=="SWING_DAMAGE" and MELEE_ATTACK or select(13, ...)
 			if IsFriendlyUnit(sourceGUID) and not IsFriendlyUnit(destGUID) and combatstarted then
 				if amount and amount > 0 then
 					sourceGUID = owners[sourceGUID] or sourceGUID
 					Add(sourceGUID, amount, DAMAGE, spellName, destName)
 					if not bossname and boss.BossIDs[tonumber(destGUID:sub(9, 12), 16)] then
 						bossname = destName
-					elseif not mobname then
+					elseif not mobname and not onlyboss then
 						mobname = destName
 					end
 				end
@@ -672,7 +689,7 @@ local OnEvent = function(self, event, ...)
 				end
 			end
 		elseif eventType=="SWING_MISSED" or eventType=="RANGE_MISSED" or eventType=="SPELL_MISSED" or eventType=="SPELL_PERIODIC_MISSED" then
-			local misstype, amount = select(eventType=="SWING_MISSED" and 10 or 13, ...)
+			local misstype, amount = select(eventType=="SWING_MISSED" and 12 or 15, ...)
 			if misstype == "ABSORB" and IsFriendlyUnit(destGUID) then
 				local shielder, shield = FindShielder(destGUID, timestamp)
 				if shielder and amount and amount > 0 then
@@ -686,7 +703,7 @@ local OnEvent = function(self, event, ...)
 				owners[destGUID] = sourceGUID
 			end
 		elseif eventType=="SPELL_HEAL" or eventType=="SPELL_PERIODIC_HEAL" then
-			spellId, spellName, spellSchool, amount, over, school, resist = select(10, ...)
+			spellId, spellName, spellSchool, amount, over, school, resist = select(12, ...)
 			if IsFriendlyUnit(sourceGUID) and IsFriendlyUnit(destGUID) and combatstarted then
 				over = over or 0
 				if amount and amount > 0 then
@@ -705,7 +722,7 @@ local OnEvent = function(self, event, ...)
 				Add(sourceGUID, 1, INTERRUPTS, "Interrupt", destName)
 			end
 		elseif eventType=="SPELL_AURA_APPLIED" or eventType=="SPELL_AURA_REFRESH" then
-			local spellId, spellName = select(10, ...)
+			local spellId, spellName = select(12, ...)
 			sourceGUID = owners[sourceGUID] or sourceGUID
 			if AbsorbSpellDuration[spellId] and IsFriendlyUnit(sourceGUID) and IsFriendlyUnit(destGUID) then
 				shields[destGUID] = shields[destGUID] or {}
@@ -713,7 +730,7 @@ local OnEvent = function(self, event, ...)
 				shields[destGUID][spellName][sourceGUID] = timestamp + AbsorbSpellDuration[spellId]
 			end
 		elseif eventType=="SPELL_AURA_REMOVED" then
-			local spellId, spellName = select(10, ...)
+			local spellId, spellName = select(12, ...)
 			sourceGUID = owners[sourceGUID] or sourceGUID
 			if AbsorbSpellDuration[spellId] and IsFriendlyUnit(destGUID) then
 				if shields[destGUID] and shields[destGUID][spellName] and shields[destGUID][spellName][destGUID] then
