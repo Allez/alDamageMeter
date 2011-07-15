@@ -673,6 +673,9 @@ local OnEvent = function(self, event, ...)
 			local spellName = eventType=="SWING_DAMAGE" and MELEE_ATTACK or select(13, ...)
 			if IsFriendlyUnit(sourceGUID) and not IsFriendlyUnit(destGUID) and combatstarted then
 				if amount and amount > 0 then
+					if owners[sourceGUID] then
+						print("Pet damage:"..amount.." "..spellName)
+					end
 					sourceGUID = owners[sourceGUID] or sourceGUID
 					Add(sourceGUID, amount, DAMAGE, spellName, destName)
 					if not bossname and boss.BossIDs[tonumber(destGUID:sub(9, 12), 16)] then
@@ -699,8 +702,10 @@ local OnEvent = function(self, event, ...)
 		elseif eventType=="SPELL_SUMMON" then
 			if owners[sourceGUID] then 
 				owners[destGUID] = owners[sourceGUID]
+				print("New pet:"..destName.." Summoner:"..sourceName.." "..owners[sourceGUID])
 			else
 				owners[destGUID] = sourceGUID
+				print("New pet:"..destName.." Summoner:"..sourceName)
 			end
 		elseif eventType=="SPELL_HEAL" or eventType=="SPELL_PERIODIC_HEAL" then
 			spellId, spellName, spellSchool, amount, over, school, resist = select(12, ...)
