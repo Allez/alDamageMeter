@@ -113,6 +113,7 @@ local timer, num, offset = 0, 0, 0
 local MainFrame
 local combatstarted = false
 local filter = COMBATLOG_OBJECT_AFFILIATION_RAID + COMBATLOG_OBJECT_AFFILIATION_PARTY + COMBATLOG_OBJECT_AFFILIATION_MINE
+local filpet = COMBATLOG_OBJECT_TYPE_PET + COMBATLOG_OBJECT_TYPE_GUARDIAN
 local backdrop = {
 	bgFile = [=[Interface\ChatFrame\ChatFrameBackground]=],
 	edgeFile = [=[Interface\ChatFrame\ChatFrameBackground]=], edgeSize = border_size,
@@ -667,7 +668,7 @@ end
 local OnEvent = function(self, event, ...)
 	if event == "COMBAT_LOG_EVENT_UNFILTERED" then
 		local timestamp, eventType, hideCaster, sourceGUID, sourceName, sourceFlags, sourceRaidFlags, destGUID, destName, destFlags, destRaidFlags = select(1, ...)
-		if band(sourceFlags, filter) == 0 and band(destFlags, filter) == 0 then return end
+		if band(sourceFlags, filter) == 0 and band(destFlags, filter) == 0 and not (band(sourceFlags, filpet) ~= 0 and owners[sourceGUID]) then return end
 		if eventType=="SWING_DAMAGE" or eventType=="RANGE_DAMAGE" or eventType=="SPELL_DAMAGE" or eventType=="SPELL_PERIODIC_DAMAGE" or eventType=="DAMAGE_SHIELD" then
 			local amount, _, _, _, _, absorbed = select(eventType=="SWING_DAMAGE" and 12 or 15, ...)
 			local spellName = eventType=="SWING_DAMAGE" and MELEE_ATTACK or select(13, ...)
