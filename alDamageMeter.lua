@@ -668,15 +668,12 @@ end
 local OnEvent = function(self, event, ...)
 	if event == "COMBAT_LOG_EVENT_UNFILTERED" then
 		local timestamp, eventType, hideCaster, sourceGUID, sourceName, sourceFlags, sourceRaidFlags, destGUID, destName, destFlags, destRaidFlags = select(1, ...)
-		if band(sourceFlags, filter) == 0 and band(destFlags, filter) == 0 and not (band(sourceFlags, filpet) ~= 0 and owners[sourceGUID]) then return end
+		if band(sourceFlags, filter) == 0 and band(destFlags, filter) == 0 then return end
 		if eventType=="SWING_DAMAGE" or eventType=="RANGE_DAMAGE" or eventType=="SPELL_DAMAGE" or eventType=="SPELL_PERIODIC_DAMAGE" or eventType=="DAMAGE_SHIELD" then
 			local amount, _, _, _, _, absorbed = select(eventType=="SWING_DAMAGE" and 12 or 15, ...)
 			local spellName = eventType=="SWING_DAMAGE" and MELEE_ATTACK or select(13, ...)
 			if IsFriendlyUnit(sourceGUID) and not IsFriendlyUnit(destGUID) and combatstarted then
 				if amount and amount > 0 then
-					if owners[sourceGUID] then
-						print("Pet damage:"..amount.." "..spellName)
-					end
 					sourceGUID = owners[sourceGUID] or sourceGUID
 					Add(sourceGUID, amount, DAMAGE, spellName, destName)
 					if not bossname and boss.BossIDs[tonumber(destGUID:sub(9, 12), 16)] then
@@ -703,10 +700,14 @@ local OnEvent = function(self, event, ...)
 		elseif eventType=="SPELL_SUMMON" then
 			if owners[sourceGUID] then 
 				owners[destGUID] = owners[sourceGUID]
-				print("New pet:"..destName.." Summoner:"..sourceName.." "..owners[sourceGUID])
 			else
 				owners[destGUID] = sourceGUID
-				print("New pet:"..destName.." Summoner:"..sourceName)
+				for pet, owner in pairs(owners) do
+					if owners[owner] then
+						owners[pet] = owners[owner]
+						break
+					end
+				end
 			end
 		elseif eventType=="SPELL_HEAL" or eventType=="SPELL_PERIODIC_HEAL" then
 			spellId, spellName, spellSchool, amount, over, school, resist = select(12, ...)
