@@ -192,7 +192,7 @@ function dataobj.OnClick(self, button)
 end
 
 local IsFriendlyUnit = function(uGUID)
-	if units[uGUID] or owners[uGUID] or uGUID==UnitGUID("player") then
+	if units[uGUID] or (owners[uGUID] and units[owners[uGUID]]) or uGUID==UnitGUID("player") then
 		return true
 	else
 		return false
@@ -764,6 +764,7 @@ local OnEvent = function(self, event, ...)
 		if name == addon_name then
 			self:UnregisterEvent(event)
 			MainFrame = CreateFrame("Frame", addon_name.."Frame", UIParent)
+			MainFrame:SetSize(width, height)
 			MainFrame:SetPoint(anchor, x, y)
 			MainFrame.bg = CreateBG(MainFrame)
 			MainFrame:SetMovable(true)
@@ -788,12 +789,13 @@ local OnEvent = function(self, event, ...)
 			CheckRoster()
 		end
 	elseif event == "VARIABLES_LOADED" then
-		if not hidetitle then
-			MainFrame.title = CreateFS(MainFrame)
-			MainFrame.title:SetPoint("BOTTOM", MainFrame, "TOP", 0, 1)
-			MainFrame.title:SetText(sMode)
-		end
 		MainFrame:SetSize(width, height)
+		MainFrame.title = CreateFS(MainFrame)
+		MainFrame.title:SetPoint("BOTTOM", MainFrame, "TOP", 0, 1)
+		MainFrame.title:SetText(sMode)
+		if hidetitle then
+			MainFrame.title:Hide()
+		end
 	elseif event == "RAID_ROSTER_UPDATE" or event == "PARTY_MEMBERS_CHANGED" or event == "PLAYER_ENTERING_WORLD" then
 		CheckRoster()
 	elseif event == "PLAYER_REGEN_DISABLED" then
