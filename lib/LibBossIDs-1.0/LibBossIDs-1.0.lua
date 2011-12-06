@@ -1,6 +1,6 @@
 --[[
 Name: LibBossIDs-1.0
-Revision: $Revision: 64 $
+Revision: $Revision: 74 $
 Author: Elsia
 Website: http://www.wowace.com/addons/libbossids-1-0/
 Documentation:
@@ -10,7 +10,7 @@ Dependencies: LibStub
 License: Public Domain, Absolutely no Warranty.
 ]]
 
-local MAJOR, MINOR = "LibBossIDs-1.0", "$Revision: 64 $"
+local MAJOR, MINOR = "LibBossIDs-1.0", "$Revision: 74 $"
 local lib = LibStub:NewLibrary(MAJOR, MINOR)
 
 if not lib then return end
@@ -113,6 +113,8 @@ local BossIDs = {
    -- Baradin Hold
    -------------------------------------------------------------------------------
    [47120]	= true,	-- Argaloth
+   [52363]	= true, -- Occu'thar
+   [55869]	= true, -- Alizabal (4.3)
 
    -------------------------------------------------------------------------------
    -- Blackfathom Deeps
@@ -345,6 +347,15 @@ local BossIDs = {
    [27696]	= true,	-- The Prophet Tharon'ja
    
    -------------------------------------------------------------------------------
+   -- End Time 4.3 
+   -------------------------------------------------------------------------------   
+    [54431]	= true,	-- Echo of Baine
+	[54445] = true, -- Echo of Jaina
+    [54123] = true, -- Echo of Sylvanas
+	[54544] = true, -- Echo of Tyrande
+	[54432] = true, -- Murozond
+      
+   -------------------------------------------------------------------------------
    -- Firelands 4.2 PTR
    -------------------------------------------------------------------------------
    [52530]	= true,	-- Alysrazor
@@ -471,6 +482,13 @@ local BossIDs = {
    [18728]	= true,	-- Doom Lord Kazzak
    [12397]	= true,	-- Lord Kazzak
 
+   -------------------------------------------------------------------------------
+   -- Hour of Twilight 4.3
+   -------------------------------------------------------------------------------
+   [54590]	= true,	-- Arcurion
+   [54968]	= true,	-- Asira Dawnslayer
+   [54938]	= true,	-- Archbishop Benedictus
+   
    -------------------------------------------------------------------------------
    -- Icecrown Citadel
    -------------------------------------------------------------------------------
@@ -1021,6 +1039,18 @@ local BossIDs = {
    [49541]	= true,	-- Vanessa VanCleef
 
    -------------------------------------------------------------------------------
+   -- Dragon Soul (4.3 Raid)
+   -------------------------------------------------------------------------------  
+   [55265]	= true,	-- Morchok
+   [55308]	= true,	-- Warlord Zonozz
+   [55312]	= true,	-- Yor'sahj the Unsleeping
+   [55689]	= true,	-- Hagara the Binder
+   [55294]	= true,	-- Ultraxion
+   [39399]	= true,	-- Warmaster Blackhorn
+   [53879]	= true,	-- Spine Deathwing
+   [56173]	= true,	-- Madness Deathwing
+   
+   -------------------------------------------------------------------------------
    -- The Eye of Eternity
    -------------------------------------------------------------------------------
    [28859]	= true,	-- Malygos
@@ -1278,6 +1308,15 @@ local BossIDs = {
    [35013]	= true,	-- Koralon the Flamewatcher
    [38433]	= true,	--Toravon the Ice Watcher
 
+   -------------------------------------------------------------------------------
+   -- Well of Eternity 4.3
+   -------------------------------------------------------------------------------
+   
+   [55085]	= true,	-- Peroth'arn
+   [54853]	= true,	-- Königin Azshara
+   [54969]	= true,	-- Mannoroth
+   [55419]	= true,	-- Varo'then
+   
    -------------------------------------------------------------------------------
    -- Winterspring
    -------------------------------------------------------------------------------

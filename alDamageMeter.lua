@@ -11,8 +11,8 @@ local texture = "Interface\\Addons\\alDamageMeter\\media\\UI-StatusBar"
 local backdrop_color = {0, 0, 0, 0.5}
 local border_color = {0, 0, 0, 1}
 local border_size = 1
-local font = "Interface\\Addons\\alDamageMeter\\media\\VisitorR.TTF"
-local font_style = "OUTLINEMONOCHROME"
+local font = GameFontNormal:GetFont()
+local font_style = "NONE"
 local font_size = 10
 local hidetitle = false
 local classcolorbar = true
@@ -112,8 +112,9 @@ local current, total, display, fights = {}, {}, {}, {}
 local timer, num, offset = 0, 0, 0
 local MainFrame
 local combatstarted = false
-local filter = COMBATLOG_OBJECT_AFFILIATION_RAID + COMBATLOG_OBJECT_AFFILIATION_PARTY + COMBATLOG_OBJECT_AFFILIATION_MINE
-local filpet = COMBATLOG_OBJECT_TYPE_PET + COMBATLOG_OBJECT_TYPE_GUARDIAN
+local raidFlags = COMBATLOG_OBJECT_AFFILIATION_RAID + COMBATLOG_OBJECT_AFFILIATION_PARTY + COMBATLOG_OBJECT_AFFILIATION_MINE
+local petFlags = COMBATLOG_OBJECT_TYPE_PET + COMBATLOG_OBJECT_TYPE_GUARDIAN
+local npcFlags = COMBATLOG_OBJECT_TYPE_NPC+COMBATLOG_OBJECT_CONTROL_NPC
 local backdrop = {
 	bgFile = [=[Interface\ChatFrame\ChatFrameBackground]=],
 	edgeFile = [=[Interface\ChatFrame\ChatFrameBackground]=], edgeSize = border_size,
@@ -191,7 +192,7 @@ function dataobj.OnClick(self, button)
 end
 
 local IsFriendlyUnit = function(uGUID)
-	if units[uGUID] or owners[uGUID] or uGUID==UnitGUID("player") then
+	if units[uGUID] or (owners[uGUID] and units[owners[uGUID]]) or uGUID==UnitGUID("player") then
 		return true
 	else
 		return false
@@ -210,7 +211,7 @@ local CreateFS = CreateFS or function(frame)
 	local fstring = frame:CreateFontString(nil, 'OVERLAY')
 	fstring:SetFont(font, font_size, font_style)
 	fstring:SetShadowColor(0, 0, 0, 1)
-	fstring:SetShadowOffset(0, 0)
+	fstring:SetShadowOffset(0.5, -0.5)
 	return fstring
 end
 
@@ -665,19 +666,39 @@ local FindShielder = function(destGUID, timestamp)
 	return found_shielder, found_shield
 end
 
+local IsUnitOrPet = function(flags)
+	if band(flags, raidFlags) ~= 0 or band(flags, petFlags) ~= 0 then
+		return true
+	end
+	return false
+end
+
 local OnEvent = function(self, event, ...)
 	if event == "COMBAT_LOG_EVENT_UNFILTERED" then
 		local timestamp, eventType, hideCaster, sourceGUID, sourceName, sourceFlags, sourceRaidFlags, destGUID, destName, destFlags, destRaidFlags = select(1, ...)
-		if band(sourceFlags, filter) == 0 and band(destFlags, filter) == 0 and not (band(sourceFlags, filpet) ~= 0 and owners[sourceGUID]) then return end
+		if eventType=="SPELL_SUMMON" and (band(sourceFlags, raidFlags) ~= 0 or band(sourceFlags, npcFlags) ~= 0 or band(sourceFlags, petFlags) ~= 0 or band(destFlags, petFlags) ~= 0) then
+			if owners[sourceGUID] then
+				owners[destGUID] = owners[sourceGUID]
+			else
+				owners[destGUID] = sourceGUID
+				for pet, owner in pairs(owners) do
+					if owners[owner] then
+						owners[pet] = owners[owner]
+						break
+					end
+				end
+			end
+		end
+		if band(sourceFlags, raidFlags) == 0 and band(destFlags, raidFlags) == 0 and band(sourceFlags, petFlags) == 0 and band(destFlags, petFlags) == 0 then return end
 		if eventType=="SWING_DAMAGE" or eventType=="RANGE_DAMAGE" or eventType=="SPELL_DAMAGE" or eventType=="SPELL_PERIODIC_DAMAGE" or eventType=="DAMAGE_SHIELD" then
 			local amount, _, _, _, _, absorbed = select(eventType=="SWING_DAMAGE" and 12 or 15, ...)
 			local spellName = eventType=="SWING_DAMAGE" and MELEE_ATTACK or select(13, ...)
 			if IsFriendlyUnit(sourceGUID) and not IsFriendlyUnit(destGUID) and combatstarted then
 				if amount and amount > 0 then
 					if owners[sourceGUID] then
-						print("Pet damage:"..amount.." "..spellName)
+						sourceGUID = owners[sourceGUID]
+						spellName = "Pet: "..spellName
 					end
-					sourceGUID = owners[sourceGUID] or sourceGUID
 					Add(sourceGUID, amount, DAMAGE, spellName, destName)
 					if not bossname and boss.BossIDs[tonumber(destGUID:sub(9, 12), 16)] then
 						bossname = destName
@@ -699,14 +720,6 @@ local OnEvent = function(self, event, ...)
 				if shielder and amount and amount > 0 then
 					Add(shielder, amount, mergeHealAbsorbs and SHOW_COMBAT_HEALING or ABSORB, shield, destName)
 				end
-			end
-		elseif eventType=="SPELL_SUMMON" then
-			if owners[sourceGUID] then 
-				owners[destGUID] = owners[sourceGUID]
-				print("New pet:"..destName.." Summoner:"..sourceName.." "..owners[sourceGUID])
-			else
-				owners[destGUID] = sourceGUID
-				print("New pet:"..destName.." Summoner:"..sourceName)
 			end
 		elseif eventType=="SPELL_HEAL" or eventType=="SPELL_PERIODIC_HEAL" then
 			spellId, spellName, spellSchool, amount, over, school, resist = select(12, ...)
@@ -751,6 +764,7 @@ local OnEvent = function(self, event, ...)
 		if name == addon_name then
 			self:UnregisterEvent(event)
 			MainFrame = CreateFrame("Frame", addon_name.."Frame", UIParent)
+			MainFrame:SetSize(width, height)
 			MainFrame:SetPoint(anchor, x, y)
 			MainFrame.bg = CreateBG(MainFrame)
 			MainFrame:SetMovable(true)
@@ -775,12 +789,13 @@ local OnEvent = function(self, event, ...)
 			CheckRoster()
 		end
 	elseif event == "VARIABLES_LOADED" then
-		if not hidetitle then
-			MainFrame.title = CreateFS(MainFrame)
-			MainFrame.title:SetPoint("BOTTOM", MainFrame, "TOP", 0, 1)
-			MainFrame.title:SetText(sMode)
-		end
 		MainFrame:SetSize(width, height)
+		MainFrame.title = CreateFS(MainFrame)
+		MainFrame.title:SetPoint("BOTTOM", MainFrame, "TOP", 0, 1)
+		MainFrame.title:SetText(sMode)
+		if hidetitle then
+			MainFrame.title:Hide()
+		end
 	elseif event == "RAID_ROSTER_UPDATE" or event == "PARTY_MEMBERS_CHANGED" or event == "PLAYER_ENTERING_WORLD" then
 		CheckRoster()
 	elseif event == "PLAYER_REGEN_DISABLED" then
