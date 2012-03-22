@@ -15,6 +15,7 @@ local font = GameFontNormal:GetFont()
 local font_style = "NONE"
 local font_size = 10
 local hidetitle = false
+local barcolor = {0.4, 0.4, 0.4, 1}
 local classcolorbar = true
 local onlyboss = false
 local classcolorname = false
@@ -167,8 +168,15 @@ local truncate = function(value)
 	elseif value >= 1e4 then
 		return string.format('%.1fk', value / 1e3)
 	else
-		return string.format('%.0f', value)
+		return value
 	end
+end
+
+local hex = function(r, g, b)
+	if type(r) == 'table' then
+		if r.r then r, g, b = r.r, r.g, r.b else r, g, b = unpack(r) end
+	end
+	return ('|cff%02x%02x%02x'):format(r * 255, g * 255, b * 255)
 end
 
 function dataobj.OnLeave()
@@ -427,13 +435,21 @@ local UpdateBars = function()
 		bar[i].id = i + offset
 		bar[i]:SetValue(100 * cur[sMode].amount / max[sMode].amount)
 		color = RAID_CLASS_COLORS[cur.class]
-		bar[i]:SetStatusBarColor(color.r, color.g, color.b)
+		if classcolorbar then
+			bar[i]:SetStatusBarColor(color.r, color.g, color.b)
+		else
+			bar[i]:SetStatusBarColor(unpack(barcolor))
+		and
 		if sMode == DAMAGE or sMode == SHOW_COMBAT_HEALING then
-			bar[i].right:SetFormattedText("%s (%.0f)", truncate(cur[sMode].amount), perSecond(cur))
+			bar[i].right:SetFormattedText("%s (%.0f)", truncate(cur[sMode].amount), truncate(perSecond(cur)))
 		else
 			bar[i].right:SetFormattedText("%s", truncate(cur[sMode].amount))
 		end
-		bar[i].left:SetText(cur.name)
+		if classcolorname then
+			bar[i].left:SetFormattedText("%s%s|r", hex(color), cur.name)
+		else
+			bar[i].left:SetText(cur.name)
+		end
 		bar[i]:Show()
 	end
 end
