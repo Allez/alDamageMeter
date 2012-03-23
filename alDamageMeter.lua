@@ -511,6 +511,12 @@ local CreateMenu = function(self, level)
 		info.notCheckable = 1
 		UIDropDownMenu_AddButton(info, level)
 		wipe(info)
+		info.text = OPTIONS
+		info.hasArrow = 1
+		info.value = "Options"
+		info.notCheckable = 1
+		UIDropDownMenu_AddButton(info, level)
+		wipe(info)
 		info.text = RESET
 		info.func = Clean
 		info.notCheckable = 1
@@ -552,6 +558,168 @@ local CreateMenu = function(self, level)
 				info.notCheckable = 1
 				UIDropDownMenu_AddButton(info, level)
 			end
+		end
+		if UIDROPDOWNMENU_MENU_VALUE == "Options" then
+			wipe(info)
+			info.text = "Visible bars"
+			info.func = function()
+				StaticPopupDialogs[addon_name.."ReportDialog"].OnAccept = function(self)
+					visiblebars = tonumber(_G[self:GetName().."EditBox"]:GetText())
+					UpdateWindow()
+				end
+				StaticPopupDialogs[addon_name.."ReportDialog"].OnShow = function(self)
+					_G[self:GetName().."EditBox"]:SetText(visiblebars)
+				end
+				StaticPopup_Show(addon_name.."ReportDialog")
+			end
+			info.notCheckable = 1
+			UIDropDownMenu_AddButton(info, level)
+			wipe(info)
+			info.text = "Bar width"
+			info.func = function()
+				StaticPopupDialogs[addon_name.."ReportDialog"].OnAccept = function(self)
+					width = tonumber(_G[self:GetName().."EditBox"]:GetText())
+					UpdateWindow()
+				end
+				StaticPopupDialogs[addon_name.."ReportDialog"].OnShow = function(self)
+					_G[self:GetName().."EditBox"]:SetText(width)
+				end
+				StaticPopup_Show(addon_name.."ReportDialog")
+			end
+			info.notCheckable = 1
+			UIDropDownMenu_AddButton(info, level)
+			wipe(info)
+			info.text = "Bar height"
+			info.func = function()
+				StaticPopupDialogs[addon_name.."ReportDialog"].OnAccept = function(self)
+					barheight = tonumber(_G[self:GetName().."EditBox"]:GetText())
+					UpdateWindow()
+				end
+				StaticPopupDialogs[addon_name.."ReportDialog"].OnShow = function(self)
+					_G[self:GetName().."EditBox"]:SetText(barheight)
+				end
+				StaticPopup_Show(addon_name.."ReportDialog")
+			end
+			info.notCheckable = 1
+			UIDropDownMenu_AddButton(info, level)
+			wipe(info)
+			info.text = "Spacing"
+			info.func = function()
+				StaticPopupDialogs[addon_name.."ReportDialog"].OnAccept = function(self)
+					spacing = tonumber(_G[self:GetName().."EditBox"]:GetText())
+					UpdateWindow()
+				end
+				StaticPopupDialogs[addon_name.."ReportDialog"].OnShow = function(self)
+					_G[self:GetName().."EditBox"]:SetText(spacing)
+				end
+				StaticPopup_Show(addon_name.."ReportDialog")
+			end
+			info.notCheckable = 1
+			UIDropDownMenu_AddButton(info, level)
+			wipe(info)
+			info.text = "Font size"
+			info.func = function()
+				StaticPopupDialogs[addon_name.."ReportDialog"].OnAccept = function(self)
+					font_size = tonumber(_G[self:GetName().."EditBox"]:GetText())
+					UpdateWindow()
+				end
+				StaticPopupDialogs[addon_name.."ReportDialog"].OnShow = function(self)
+					_G[self:GetName().."EditBox"]:SetText(font_size)
+				end
+				StaticPopup_Show(addon_name.."ReportDialog")
+			end
+			info.notCheckable = 1
+			UIDropDownMenu_AddButton(info, level)
+			UIDropDownMenu_AddButton(info, level)
+			wipe(info)
+			info.text = "Hide title"
+			info.func = function()
+				hidetitle = not hidetitle
+				UpdateWindow()
+			end
+			info.checked = hidetitle
+			UIDropDownMenu_AddButton(info, level)
+			wipe(info)
+			info.text = "Class color bar"
+			info.func = function()
+				classcolorbar = not classcolorbar
+				UpdateWindow()
+			end
+			info.checked = classcolorbar
+			UIDropDownMenu_AddButton(info, level)
+			wipe(info)
+			info.text = "Class color name"
+			info.func = function()
+				classcolorname = not classcolorname
+				UpdateWindow()
+			end
+			info.checked = classcolorname
+			UIDropDownMenu_AddButton(info, level)
+			wipe(info)
+			info.text = "Save only boss fights"
+			info.func = function()
+				onlyboss = not onlyboss
+				UpdateWindow()
+			end
+			info.checked = onlyboss
+			UIDropDownMenu_AddButton(info, level)
+			wipe(info)
+			info.text = "Merge heal and absorbs"
+			info.func = function()
+				mergeHealAbsorbs = not mergeHealAbsorbs
+				UpdateWindow()
+			end
+			info.checked = mergeHealAbsorbs
+			UIDropDownMenu_AddButton(info, level)
+			wipe(info)
+			info.text = "Bar color"
+			info.hasColorSwatch = 1
+			info.r = barcolor[1]
+			info.g = barcolor[2]
+			info.b = barcolor[3]
+			info.swatchFunc = function()
+				barcolor = {ColorPickerFrame:GetColorRGB()}
+				UpdateBars()
+			end
+			info.cancelFunc = function(restore)
+				barcolor = {restore.r, restore.g, restore.b}
+				UpdateBars()
+			end
+			UIDropDownMenu_AddButton(info, level)
+			info.text = "Backdrop color"
+			info.hasColorSwatch = 1
+			info.hasOpacity = 1
+			info.r = backdropcolor[1]
+			info.g = backdropcolor[2]
+			info.b = backdropcolor[3]
+			info.opacity = backdropcolor[4]
+			info.swatchFunc = function()
+				backdropcolor = {ColorPickerFrame:GetColorRGB(), OpacitySliderFrame:GetValue()}
+				UpdateBars()
+			end
+			info.opacityFunc = info.swatchFunc
+			info.cancelFunc = function(restore)
+				backdropcolor = {restore.r, restore.g, restore.b}
+				UpdateBars()
+			end
+			UIDropDownMenu_AddButton(info, level)
+			info.text = "Border color"
+			info.hasColorSwatch = 1
+			info.hasOpacity = 1
+			info.r = bordercolor[1]
+			info.g = bordercolor[2]
+			info.b = bordercolor[3]
+			info.opacity = bordercolor[4]
+			info.swatchFunc = function()
+				bordercolor = {ColorPickerFrame:GetColorRGB(), OpacitySliderFrame:GetValue()}
+				UpdateBars()
+			end
+			info.opacityFunc = info.swatchFunc
+			info.cancelFunc = function(restore)
+				bordercolor = {restore.r, restore.g, restore.b}
+				UpdateBars()
+			end
+			UIDropDownMenu_AddButton(info, level)
 		end
 	end
 end
