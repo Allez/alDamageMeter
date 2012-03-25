@@ -1,9 +1,10 @@
 ## Interface: 40300
 ## Author: Allez
 ## Title: |cff777777al|rDamageMeter
-## Version: 40300.7
+## Version: 40300.10
 ## Notes: Damage meter
 ## OptionalDeps: alInterface
+## SavedVariables: dmconf
 
 embeds.xml
 alDamageMeter.lua
