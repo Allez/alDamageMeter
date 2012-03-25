@@ -368,6 +368,7 @@ local UpdateBars = function()
 		end
 		if dmconf.classcolorname then
 			bar[i].left:SetFormattedText("%s%s|r", hex(color), cur.name)
+			bar[i].right:SetFormattedText("%s%s|r", hex(color), bar[i].right:GetText())
 		else
 			bar[i].left:SetText(cur.name)
 		end
