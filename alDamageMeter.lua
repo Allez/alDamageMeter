@@ -624,6 +624,8 @@ local CreateMenu = function(self, level)
 			UIDropDownMenu_AddButton(info, level)
 			wipe(info)
 			info.text = "Bar color"
+			info.hasColorSwatch = 1
+			info.func = UIDropDownMenuButton_OpenColorPicker
 			info.r = dmconf.barcolor[1]
 			info.g = dmconf.barcolor[2]
 			info.b = dmconf.barcolor[3]
@@ -632,7 +634,8 @@ local CreateMenu = function(self, level)
 				UpdateBars()
 			end
 			info.cancelFunc = function(restore)
-				dmconf.barcolor = {restore.r, restore.g, restore.b}
+				local pv = ColorPickerFrame.previousValues
+				dmconf.barcolor = {pv.r, pv.g, pv.b}
 				UpdateBars()
 			end
 			info.notCheckable = 1
