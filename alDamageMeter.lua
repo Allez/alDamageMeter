@@ -168,7 +168,7 @@ local perSecond = function(cdata)
 end
 
 local report = function(channel, cn)
-	local message = sMode..":"
+	local message = addon_name.." : "..sMode
 	if channel == "Chat" then
 		DEFAULT_CHAT_FRAME:AddMessage(message)
 	else
@@ -466,6 +466,13 @@ local CreateMenu = function(self, level)
 		info.func = Clean
 		info.notCheckable = 1
 		UIDropDownMenu_AddButton(info, level)
+		wipe(info)
+		info.text = HIDE
+		info.func = function()
+			MainFrame:Hide()
+		end
+		info.notCheckable = 1
+		UIDropDownMenu_AddButton(info, level)
 	elseif level == 2 then
 		if UIDROPDOWNMENU_MENU_VALUE == "Mode" then
 			for i, v in pairs(displayMode) do
@@ -617,7 +624,6 @@ local CreateMenu = function(self, level)
 			UIDropDownMenu_AddButton(info, level)
 			wipe(info)
 			info.text = "Bar color"
-			info.hasColorSwatch = 1
 			info.r = dmconf.barcolor[1]
 			info.g = dmconf.barcolor[2]
 			info.b = dmconf.barcolor[3]
@@ -630,42 +636,51 @@ local CreateMenu = function(self, level)
 				UpdateBars()
 			end
 			info.notCheckable = 1
+			info.keepShownOnClick = false
 			UIDropDownMenu_AddButton(info, level)
 			info.text = "Backdrop color"
 			info.hasColorSwatch = 1
-			info.hasOpacity = 1
+			info.hasOpacity = (dmconf.backdrop_color[4] ~= nil)
+			info.func = UIDropDownMenuButton_OpenColorPicker
 			info.r = dmconf.backdrop_color[1]
 			info.g = dmconf.backdrop_color[2]
 			info.b = dmconf.backdrop_color[3]
 			info.opacity = dmconf.backdrop_color[4]
-			info.swatchFunc = function()
-				dmconf.backdrop_color = {ColorPickerFrame:GetColorRGB(), OpacitySliderFrame:GetValue()}
-				UpdateBars()
+			info.swatchFunc, info.opacityFunc, info.cancelFunc = function ()
+				dmconf.backdrop_color = {ColorPickerFrame:GetColorRGB()}
+				dmconf.backdrop_color[4] = OpacitySliderFrame:GetValue()
+				UpdateWindow()
 			end
 			info.opacityFunc = info.swatchFunc
-			info.cancelFunc = function(restore)
-				dmconf.backdrop_color = {restore.r, restore.g, restore.b}
-				UpdateBars()
+			info.cancelFunc = function ()
+				local pv = ColorPickerFrame.previousValues
+				dmconf.backdrop_color = {pv.r, pv.g, pv.b, pv.opacity}
+				UpdateWindow()
 			end
 			info.notCheckable = 1
+			info.keepShownOnClick = false
 			UIDropDownMenu_AddButton(info, level)
 			info.text = "Border color"
 			info.hasColorSwatch = 1
 			info.hasOpacity = 1
+			info.func = UIDropDownMenuButton_OpenColorPicker
 			info.r = dmconf.border_color[1]
 			info.g = dmconf.border_color[2]
 			info.b = dmconf.border_color[3]
-			info.opacity = dmconf.border_color[4]
+			info.opacity = (dmconf.border_color[4] ~= nil)
 			info.swatchFunc = function()
-				borde_rcolor = {ColorPickerFrame:GetColorRGB(), OpacitySliderFrame:GetValue()}
-				UpdateBars()
+				dmconf.border_color = {ColorPickerFrame:GetColorRGB()}
+				dmconf.border_color[4] = OpacitySliderFrame:GetValue()
+				UpdateWindow()
 			end
 			info.opacityFunc = info.swatchFunc
 			info.cancelFunc = function(restore)
-				dmconf.border_color = {restore.r, restore.g, restore.b}
-				UpdateBars()
+				local pv = ColorPickerFrame.previousValues
+				dmconf.border_color = {pv.r, pv.g, pv.b, pv.opacity}
+				UpdateWindow()
 			end
 			info.notCheckable = 1
+			info.keepShownOnClick = false
 			UIDropDownMenu_AddButton(info, level)
 		end
 	end
@@ -704,28 +719,20 @@ end
 
 local CheckRoster = function()
 	wipe(units)
-	if GetNumRaidMembers() > 0 then
-		for i = 1, GetNumRaidMembers(), 1 do
-			CheckUnit("raid"..i)
-		end
-	elseif GetNumPartyMembers() > 0 then
-		for i = 1, GetNumPartyMembers(), 1 do
-			CheckUnit("party"..i)
+	if GetNumGroupMembers() > 0 then
+		local unit = IsInRaid() and "raid" or "party"
+		for i = 1, GetNumGroupMembers(), 1 do
+			CheckUnit(unit..i)
 		end
 	end
 	CheckUnit("player")
 end
 
 local IsRaidInCombat = function()
-	if GetNumRaidMembers() > 0 then
-		for i = 1, GetNumRaidMembers(), 1 do
-			if UnitExists("raid"..i) and UnitAffectingCombat("raid"..i) then
-				return true
-			end
-		end
-	elseif GetNumPartyMembers() > 0 then
-		for i = 1, GetNumPartyMembers(), 1 do
-			if UnitExists("party"..i) and UnitAffectingCombat("party"..i) then
+	if GetNumGroupMembers() > 0 then
+		local unit = IsInRaid() and "raid" or "party"
+		for i = 1, GetNumGroupMembers(), 1 do
+			if UnitExists(unit..i) and UnitAffectingCombat(unit..i) then
 				return true
 			end
 		end
@@ -912,7 +919,7 @@ local OnEvent = function(self, event, ...)
 		MainFrame.title:SetPoint("BOTTOM", MainFrame, "TOP", 0, 1)
 		MainFrame.title:SetText(sMode)
 		UpdateWindow()
-	elseif event == "RAID_ROSTER_UPDATE" or event == "PARTY_MEMBERS_CHANGED" or event == "PLAYER_ENTERING_WORLD" then
+	elseif event == "GROUP_ROSTER_UPDATE" or event == "PLAYER_ENTERING_WORLD" then
 		CheckRoster()
 	elseif event == "PLAYER_REGEN_DISABLED" then
 		if not combatstarted then
@@ -930,19 +937,16 @@ addon:SetScript('OnEvent', OnEvent)
 addon:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
 addon:RegisterEvent("ADDON_LOADED")
 addon:RegisterEvent("VARIABLES_LOADED")
-addon:RegisterEvent("RAID_ROSTER_UPDATE")
-addon:RegisterEvent("PARTY_MEMBERS_CHANGED")
+addon:RegisterEvent("GROUP_ROSTER_UPDATE")
 addon:RegisterEvent("PLAYER_ENTERING_WORLD")
 addon:RegisterEvent("PLAYER_REGEN_DISABLED")
 addon:RegisterEvent("UNIT_PET")
 
 SlashCmdList["alDamage"] = function(msg)
-	for i = 1, 20 do
-		units[i] = {name = UnitName("player"), class = select(2, UnitClass("player")), unit = "1"}
-		Add(i, i*10000, DAMAGE)
-		units[i] = nil
+	if MainFrame:IsShown() then
+		MainFrame:Hide()
+	else
+		MainFrame:Show()
 	end
-	display = current
-	UpdateBars()
 end
 SLASH_alDamage1 = "/dmg"
