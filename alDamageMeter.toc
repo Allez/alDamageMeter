@@ -1,7 +1,7 @@
-## Interface: 40300
+## Interface: 50001
 ## Author: Allez
 ## Title: |cff777777al|rDamageMeter
-## Version: 40300.10
+## Version: 50001.11
 ## Notes: Damage meter
 ## OptionalDeps: alInterface
 ## SavedVariables: dmconf
