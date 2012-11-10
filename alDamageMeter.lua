@@ -356,7 +356,7 @@ local UpdateBars = function()
 		bar[i].id = i + offset
 		bar[i]:SetValue(100 * cur[sMode].amount / max[sMode].amount)
 		color = RAID_CLASS_COLORS[cur.class]
-		if dmconf.classcolorbar then
+		if dmconf.classcolorbar and color then
 			bar[i]:SetStatusBarColor(color.r, color.g, color.b)
 		else
 			bar[i]:SetStatusBarColor(unpack(dmconf.barcolor))
@@ -366,7 +366,7 @@ local UpdateBars = function()
 		else
 			bar[i].right:SetFormattedText("%s", truncate(cur[sMode].amount))
 		end
-		if dmconf.classcolorname then
+		if dmconf.classcolorname and color then
 			bar[i].left:SetFormattedText("%s%s|r", hex(color), cur.name)
 			bar[i].right:SetFormattedText("%s%s|r", hex(color), bar[i].right:GetText())
 		else
