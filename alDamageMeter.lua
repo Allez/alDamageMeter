@@ -469,7 +469,8 @@ local CreateMenu = function(self, level)
 		wipe(info)
 		info.text = HIDE
 		info.func = function()
-			MainFrame:Hide()
+			MainFrame:SetAlpha(0)
+			MainFrame:EnableMouse(false)
 		end
 		info.notCheckable = 1
 		UIDropDownMenu_AddButton(info, level)
@@ -946,10 +947,12 @@ addon:RegisterEvent("PLAYER_REGEN_DISABLED")
 addon:RegisterEvent("UNIT_PET")
 
 SlashCmdList["alDamage"] = function(msg)
-	if MainFrame:IsShown() then
-		MainFrame:Hide()
+	if MainFrame:GetAlpha() > 0 then
+		MainFrame:SetAlpha(0)
+		MainFrame:EnableMouse(false)
 	else
-		MainFrame:Show()
+		MainFrame:SetAlpha(1)
+		MainFrame:EnableMouse(true)
 	end
 end
 SLASH_alDamage1 = "/dmg"
